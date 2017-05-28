@@ -1,0 +1,3389 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+        <title>Complex Function Plotter</title>
+
+        <script type="text/javascript">
+            var $ = function( id ) { return document.getElementById( id ); };
+        </script>
+
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-61197043-1', 'auto');
+          ga('send', 'pageview');
+
+        </script>
+
+    <script id="texdrawvs" type="glsl">
+        attribute vec2 pos;
+        attribute vec2 tcoord;
+
+        uniform vec2 offset;
+        uniform vec2 zoom;
+        uniform float zer;
+
+        //uniform float tes;
+
+        varying vec2 coord;
+        void main() {
+            gl_Position = vec4(pos,0.0,1.0);//vec4(pos/zoom - offset,0.0,1.0);
+            vec2 c2 = tcoord + vec2(1,1);
+            coord = pos*zoom + offset + c2*zer;//tcoord;//*zoom+offset;//*-1.0*tes;
+        }
+    </script>
+
+    <script id="texdrawfs" type="glsl">
+        precision highp float;
+
+        uniform sampler2D sam;
+        varying vec2 coord;
+        
+
+        void main() {
+            vec2 scaled = (coord + vec2(1.,1.))/2.0;
+            if(scaled.x > 1.0 || scaled.y > 1.0 || scaled.x < 0.0 || scaled.y < 0.0) {
+                gl_FragColor = vec4(0.,0.,0.,1.);
+            } else {
+                gl_FragColor = texture2D(sam, scaled);
+            }
+        }
+    </script>
+
+    <script id="surfacevs" type="glsl">
+        attribute vec4 pos;
+
+        uniform mat4 view;
+        uniform mat4 rot;
+        uniform float basescale;
+        uniform float zoom;
+        uniform vec3 offset;
+
+        uniform bool invert;
+
+        varying vec2 fz;
+
+        float arg(vec2 z) {
+            return atan(z.y, z.x);
+        }
+        /*
+        mat4 rotationMatrix(vec3 axis, float angle)
+		{
+		    axis = normalize(axis);
+		    float s = sin(angle);
+		    float c = cos(angle);
+		    float oc = 1.0 - c;
+		    
+		    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+		                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+		                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+		                0.0,                                0.0,                                0.0,                                1.0);
+		}*/
+
+		//(z/t)^2 + s
+        void main() {
+        	
+
+            //gl_Position = vec4((rotationMatrix(vec3(1,1,1), 0.3)*vec4(pos.yzx*0.5,1)).xyz, 1.0);
+            //gl_Position = view*(rotationMatrix(vec3(1,1,1), 0.3)*vec4(pos.yzx*0.5,1));
+            //gl_Position = view*rot*vec4(pos.yzx*0.5,1);
+
+            if(invert) {
+                        //Plot inverse by flipping input/output
+                        fz = pos.xy; 
+        		//gl_Position = view*rot*vec4(zoom*basescale*(pos.zwx + offset),1);
+                        gl_Position = view*rot*vec4(zoom*basescale*(pos.zwy + offset),1);
+
+        	} else {
+        		fz = pos.zw;
+            	        gl_Position = view*rot*vec4(zoom*basescale*(pos.xyw + offset),1);
+                }
+            gl_PointSize = 4.0;
+        }
+    </script>
+
+    <script id="surfacefs" type="glsl">
+
+
+
+        precision highp float;
+
+        varying vec2 fz;
+        #define complex vec2
+        const float pi = 3.14159265359;
+        const complex cpi = complex(3.14159265359, 0.0);
+
+        const float e = 2.71828182846;
+        const complex ce = complex(2.71828182846, 0.0);
+
+        const complex i = complex(0.0, 1.0);
+        const complex one = complex(1.0, 0.0);
+        const complex zero = complex(0.0,0.0);
+
+        uniform bool dcoloring;
+        uniform bool checkerboard;
+        uniform bool originindicator;
+        uniform bool unitcircle;
+        uniform bool infstripes;      
+        uniform sampler2D sam;
+        //varying vec2 coord;
+
+        uniform vec2 texscale;
+
+        float arg(complex z) {
+            return atan(z.y, z.x);
+        }
+
+        vec4 hsv_to_rgb(float H, float S, float V) {
+            vec4 color;
+
+            float Hp = degrees(mod(H,2.0*pi))/60.0;
+            float C = V*S;
+
+            float X = C * (1.0 - abs(mod(Hp, 2.0) -1.0));
+
+            int val = int(Hp);
+
+
+                if(val == 0)
+                    color = vec4(C, X, 0.0, 1.0);
+
+                if(val == 1)
+                    color = vec4(X, C, 0.0, 1.0);
+
+                if(val == 2)
+                    color = vec4(0.0, C, X, 1.0);
+
+                if(val == 3)
+                    color = vec4(0.0, X, C, 1.0);
+
+                if(val == 4)
+                    color = vec4(X, 0.0, C, 1.0);
+
+                if(val == 5 || val == 6)
+                    color = vec4(C, 0.0, X, 1.0);
+
+            float m = V - C;
+            color.x += m;
+            color.y += m;
+            color.z += m;
+
+            return color;
+        }
+        /*
+        complex testfn(complex z) {
+            if(z.x > 10.0) return complex(1./0., 1./0.);
+            return z;
+        }
+        */
+
+        bool in_circle(vec2 center, float r, complex z){
+            return length(z-center) < r;
+        }
+
+        bool in_annulus(vec2 center, float r1, float r2, complex z){
+            return length(z-center) > r1 && length(z-center) < r2;
+        }
+
+        bool isnan(float val)
+        {
+          return (val <= 0.0 || 0.0 <= val) ? false : true;
+        }        
+
+        bool isinf(float val) {
+            return (val != 0.0 && val * 2.0 == val) ? true : false;
+        }
+
+        vec4 get_color(complex z) {
+
+            //if(isnan(z.x)) return vec4(1.,0.,0.,1.);
+            //if(isnan(z.y)) return vec4(0.,1.,0.,1.);
+
+            vec4 texcolor = vec4(0.0,0.0,0.0,0.0);
+            vec2 uv = vec2(mod((texscale.x*z.x+1.0)/2.0, 1.0), mod((texscale.y*z.y+1.0)/2.0, 1.0));
+            texcolor = texture2D(sam, uv );
+
+            vec4 bgcolor;
+            if (texcolor.w != 1.0) {
+                // Domain coloring! --right now just white
+                float r = length(z);
+                //r = 1.0;
+                //float angle = arg(z);
+
+                if(dcoloring){
+                    //float degrade = r+0.5;//1.0;//exp(r+e); //r+0.5;
+                    //float vf = $valfun$;
+
+                    bgcolor = hsv_to_rgb(-arg(z) +3.14159, 1.0, 1.0/log(r+2.7));
+                    //if(isnan(vf)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                    //if(isinf(z.x)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                }
+
+                float size = 1.0/16.0;
+                float freq = 0.2;
+
+                {
+                    /*
+                    if(mod(z.x, freq) < size && mod(z.y, freq) < size) {
+                        bgcolor = vec4(0.0,0.0,0.0,1.0);
+                    }
+                    */
+                    if(checkerboard){
+                        if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                } 
+                //20.5
+                //54.6
+                if(r > 20.1)  {
+                    if(infstripes){
+                        if (mod(r*log(r), (r)) < (r)/2.0) {
+                            bgcolor = vec4(0.1,0.1,0.1,1.0);
+                        }
+
+                        if (mod(r*log(r), (r)) > (r)/2.0) {
+                            bgcolor = vec4(0.2,0.2,0.2,1.0);
+                        }
+                    }
+                }
+                /*
+                if(mod(z.x+size/2.0, freq) < size && mod(z.y+size/2.0, freq) < size) {
+                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                }*/
+
+                if(unitcircle){
+                    if(!( in_circle(vec2(1,0),size, z) || 
+                          in_circle(vec2(0,1),size, z) || 
+                          in_circle(vec2(-1,0),size, z) ||
+                          in_circle(vec2(0,-1),size, z) )) {
+
+                        if (r <= 1.0 && r > 1.0-size) {
+                            bgcolor = vec4(0.4,0.4,0.4,1.0);
+                        }
+
+                        if (r >= 1.0 && r < 1.0 + size) {
+                            bgcolor = vec4(0.75,0.75,0.75,1.0);
+                        }
+                    } else if(!dcoloring){
+                        if(r <= 1.0 && r > 1.0-size || r >= 1.0 && r < 1.0 + size) {
+                            float r = length(z);
+                            bgcolor = hsv_to_rgb(-arg(z) +3.14159, 1.0, 1.0/log(r+2.7));
+                            if(checkerboard){
+                                if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                if(originindicator) {
+                    if (r < size) {
+                        bgcolor = vec4(1.,1.,1.,1.);
+                        //bgcolor.w = 1.0;
+                        if (mod(floor(z.x/size),2.0) == mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                }
+
+                texcolor = bgcolor;
+            }
+
+
+            //vec4 finalcolor = texcolor*texcolor.w + bgcolor*(1.0-texcolor.w);
+            //finalcolor.w = 1.0;
+            //if(isnan(texcolor.x) || isinf(texcolor.x)) return vec4(0,0,0,1);
+            //if(isnan(texcolor.y) || isinf(texcolor.y)) return vec4(0,0,0,1);
+            //if(isnan(texcolor.z) || isinf(texcolor.z)) return vec4(0,0,0,1);
+            return texcolor;
+            
+        }
+
+
+        
+
+        void main() {
+            gl_FragColor = get_color(fz);
+        }
+    </script>
+
+    <script id="complexvs" type="glsl">
+        #define complex vec2 
+        attribute vec2 pos;
+       
+        uniform vec2 offset;
+        uniform vec2 scale; 
+        uniform vec2 zoom;
+
+
+
+        varying complex zin;
+
+
+        void main() {
+            //vec4 position = vec4(pos,0.,1.);
+            //position = offset*zoom*scale*position;
+            //position = position/position.w;
+
+            zin = zoom*scale*pos + offset;
+            gl_Position = vec4(pos,0.0,1.0);
+            //gl_Position.w=1.0;
+        }
+    </script>
+
+    <script id="complexfs-incomplete" type="glsl">
+        precision highp float;
+
+        #define complex vec2 
+        const float pi = 3.14159265359;
+        const complex cpi = complex(3.14159265359, 0.0);
+
+        const float e = 2.71828182846;
+        const complex ce = complex(2.71828182846, 0.0);
+
+        const complex i = complex(0.0, 1.0);
+        const complex one = complex(1.0, 0.0);
+        const complex zero = complex(0.0,0.0);
+
+        complex _zprime_ = zero;
+
+        
+
+        varying complex zin;
+
+        uniform sampler2D sam;
+        uniform vec2 scale; 
+        uniform vec2 zoom;
+
+        uniform vec2 texscale;
+
+        uniform bool dcoloring;
+        uniform bool checkerboard;
+        uniform bool originindicator;
+        uniform bool unitcircle;
+        uniform bool infstripes;     
+        uniform bool invert;          
+
+        uniform bool renderImage;
+
+
+        bool isnan(float);
+
+        bool isinf(float val) {
+            return (val != 0.0 && val * 2.0 == val) ? true : false;
+        }
+       
+        
+        complex conjugate(complex z) {
+            return complex(z.x, -z.y);
+        }
+
+        complex mul(complex z, complex v) {
+            return complex(z.x*v.x - z.y*v.y, z.x*v.y + z.y*v.x);
+        }
+
+        complex div(complex z, complex v) {
+            if(isinf(v.x) || isinf(v.y)) return zero;
+            //if(isnan(v.x) || isnan(v.y)) return -one;
+            return mul(z, conjugate(v))/(v.x*v.x + v.y*v.y); //(mul(v, conjugate(v)).x);
+        }
+
+        complex re(complex z) {
+            return complex(z.x, 0.0);
+        }
+
+        complex im(complex z) {
+            return complex(z.y, 0.0);
+        }
+
+        float arg(complex z) {
+            return atan(z.y, z.x);
+        }
+
+        complex carg(complex z) {
+            return complex(arg(z), 0.0);
+        }
+
+        complex cargi(complex z) {
+            return complex(0.0, arg(z));
+        }
+
+        //Log base e
+        complex clog(complex z) {
+            return complex(log(length(z)), arg(z));
+        }
+
+        complex ln(complex z) {
+            return clog(z);
+        }
+
+        //Log base b
+        complex clog(complex z, complex b) {
+            return div(clog(z),clog(b));
+        }
+
+
+        complex clen(complex z) {
+           return complex(length(z), 0.0);
+        }
+
+        //Special case of cpow, e^z
+        complex cexp(complex z) {
+            // Computes e^z = e^(x+iy) = e^x (cos(y) + isin(y))
+            return exp(z.x)*complex(cos(z.y), sin(z.y));
+        }
+
+        //Special case, for efficiency
+        complex cpow(float r, complex z) {
+            //Computes r^z = r^(c+di) = r^z r^di = r^z e^log(r)di
+            return pow(r,z.x) *complex(cos(z.y*log(r)), sin(z.y* log(r)));
+        }
+        complex cpow(complex z, complex w) {
+            // Computes z^w = (|z|^2)^(0.5w.x) * e^(-w.y*arg(z)) * e^(i(w.x*arg(z) + 0.5*w.y*log(|z|^2)))
+            //if(z.y == 0.0 ) return cpow(z.x, w);
+            if(z == zero) return zero;
+            //return cexp(mul(w,clog(z)));
+            return pow(dot(z, z), 0.5*w.x) * cexp(complex(-w.y*arg(z), w.x*arg(z) + 0.5*w.y*log(dot(z,z))));
+        }
+
+
+
+        complex csqrt(complex z) {
+            return cpow(z, complex(0.5, 0));
+        }
+
+        complex csin(complex z) {
+            // Computes 0.5i * (e^-iz - e^iz)
+            return mul(0.5*i, cexp(mul(i, -z)) - cexp(mul(i, z)));
+        }
+
+        complex ccos(complex z) {
+            // Computes 0.5*(e^-iz + e^iz)
+            return 0.5*(cexp(mul(i, -z)) + cexp(mul(i, z)));
+        }
+
+        complex ctan(complex z) {
+            return div(csin(z), ccos(z));
+        }
+
+        complex acsin(complex z) {
+        	return mul(-i, clog(mul(i, z) + cpow(complex(1.0, 0.0)-mul(z,z), complex(0.5, 0.0))));
+        }
+
+        complex accos(complex z) {
+        	return 0.5*cpi + acsin(z);
+        }
+
+        complex actan(complex z) {
+        	return 0.5*mul(i, (clog(complex(1,0)-mul(i,z)) - clog(complex(1,0)+mul(i,z))));
+        }
+
+        complex csinh(complex z) {
+            return 0.5*(cexp(z) - cexp(-z));
+        }
+
+        complex ccosh(complex z) {
+            return 0.5*(cexp(z) + cexp(-z));
+        }
+
+        complex ctanh(complex z) {
+            return div(csinh(z), ccosh(z));
+        }
+
+        complex acsinh(complex z) {
+            return clog(z + cpow(mul(z,z) + complex(1,0),complex(0.5, 0.0)));
+        }
+
+        complex accosh(complex z) {
+            return clog(z + mul(cpow(z + complex(1,0),complex(0.5, 0.0)),cpow(z - complex(1,0),complex(0.5, 0.0))));
+        }
+
+        complex actanh(complex z) {
+            return 0.5*(clog(complex(1,0)+z) - clog(complex(1,0)-z));
+        }
+
+
+        complex csec(complex z){
+            return div(z,ccos(z));
+        }
+
+        complex ccsc(complex z){
+            return div(z,csin(z));
+        }
+
+        complex ccot(complex z){
+            return div(ccos(z),csin(z));
+        }
+
+        complex acsec(complex z){
+            return accos(div(one,z));
+        }
+
+        complex accsc(complex z){
+            return acsin(div(one,z));
+        }
+
+        complex accot(complex z){
+            return actan(div(one,z));
+        }
+
+        //Hyperbolic trig
+        complex csech(complex z){
+            return div(one,ccosh(z));
+        }
+
+        complex ccsch(complex z){
+            return div(one,csinh(z));
+        }
+
+        complex ccoth(complex z){
+            return div(ccosh(z),csinh(z));
+        }
+
+        complex acsech(complex z){
+            return accosh(div(one,z));
+        }
+
+        complex accsch(complex z){
+            return acsinh(div(one,z));
+        }
+
+        complex accoth(complex z){
+            return actanh(div(one,z));
+        }
+
+        complex mandelbrot(complex z) {
+            complex zp = complex(0.0);
+            for(int n = 0; n < 8; n++) {
+                zp  = mul(zp, zp) + z;
+            }
+            return zp;
+        }
+        
+
+        complex gamma(complex z) {
+            //https://en.wikipedia.org/wiki/Lanczos_approximation
+
+            const int plength = 8;
+            float p[plength];
+            p[0] = 676.5203681218851;
+            p[1] = -1259.1392167224028;  
+            p[2] = 771.32342877765313;
+            p[3] = -176.61502916214059;
+            p[4] = 12.507343278686905;
+            p[5] = -0.13857109526572012;
+            p[6] = 9.9843695780195716e-6;
+            p[7] = 1.5056327351493116e-7;
+
+            complex ref;
+            bool inv = false;
+
+            if(z.x < 0.5){
+                ref = div(cpi, csin(pi*z));
+                z = one-z;
+                inv = true;
+            } 
+            z = z-one;
+            complex x = one;
+            for(int n = 0; n < plength; n++){
+                x += div(complex(p[n],0.0), z + complex(n+1,0));
+            }
+            complex t = z + complex(plength,0) - complex(0.5,0.0);
+
+            if(inv) {
+                return div(ref, sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x));
+            } else {
+                return sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x);
+            }
+        }
+
+        // float factorial(float x) {
+        //     //return 5.0;
+        //     if(x==0.0) return 1.0;
+        //     if(x==1.0) return 1.0;
+        //     float tot = 1.0;
+        //     for(float n = 1.0; n <= 5.0; n++){
+        //         if(n > x) break;
+        //         tot *= n;
+        //     }
+        //     return tot;
+        // }
+
+        //float stirling(float n) {
+         //   if(n <= 1.0) return 1.0;
+        //    return sqrt(2.0*pi*n)*pow((n/e), n);
+        //}
+
+        complex factorial(complex z) {
+            //if(z.y == 0.0 ) return complex(stirling(z.x),0.0);
+            return gamma(z+one);
+        }
+
+
+
+
+        //float binomial(float n, float k) {
+        //    return factorial(n)/(factorial(n-k)*factorial(k));
+        //}
+
+        complex binomial(complex n, complex k) {
+            return div(factorial(n), mul(factorial(n-k),factorial(k)));
+        }
+
+
+        float d20(float n) {
+            return 1.02268/(1.0+0.000003 * exp(0.867237*n))-0.017144; 
+        }
+
+        float d70(float n){
+
+            
+           if(n < 27.0) {
+               return 1.0;
+           } else { 
+                //y = -0.09699716 + (0.9818753 - -0.09699716)/(1 + (x/0.2604921)^4.245834) //r2 0.999
+                //n = n/27.0;
+
+                return 1.00622/(1.0 + 4.2364e-11 * exp(0.477878*n));
+                return -0.01026294 + (1.005786 - -0.01026294)/(1.0+ pow(pow(n/0.9574826,8.804597),2.22099));
+                //return -0.04648318 + (0.9967216 - -0.04648318)/(1.0 + pow(n/0.8590162,10.26419));
+                //return -0.09699716 + (0.9818753 - -0.09699716)/(1.0 + pow(n/0.2604921,4.245834));
+               //return -0.02594087 + (1.003729 - -0.02594087)/(1.0 + pow(n/50.09641,22.79802)); 
+           }
+        }
+
+
+        complex zeta(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= 0.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 1.0 *cpow( 10.0 ,-z);
+            total += 1.0 *cpow( 11.0 ,-z);
+            total -= 1.0 *cpow( 12.0 ,-z);
+            total += 1.0 *cpow( 13.0 ,-z);
+            total -= 1.0 *cpow( 14.0 ,-z);
+            total += 1.0 *cpow( 15.0 ,-z);
+            total -= 1.0 *cpow( 16.0 ,-z);
+            total += 1.0 *cpow( 17.0 ,-z);
+            total -= 1.0 *cpow( 18.0 ,-z);
+            total += 1.0 *cpow( 19.0 ,-z);
+            total -= 1.0 *cpow( 20.0 ,-z);
+            total += 1.0 *cpow( 21.0 ,-z);
+            total -= 1.0 *cpow( 22.0 ,-z);
+            total += 1.0 *cpow( 23.0 ,-z);
+            total -= 1.0 *cpow( 24.0 ,-z);
+            total += 1.0 *cpow( 25.0 ,-z);
+            total -= 1.0 *cpow( 26.0 ,-z);
+            total += 1.0 *cpow( 27.0 ,-z);
+            total -= 1.0 *cpow( 28.0 ,-z);
+            total += 1.0 *cpow( 29.0 ,-z);
+            total -= 1.0 *cpow( 30.0 ,-z);
+            total += 1.0 *cpow( 31.0 ,-z);
+            total -= 1.0 *cpow( 32.0 ,-z);
+            total += 1.0 *cpow( 33.0 ,-z);
+            total -= 1.0 *cpow( 34.0 ,-z);
+            total += 1.0 *cpow( 35.0 ,-z);
+            total -= 1.0 *cpow( 36.0 ,-z);
+            total += 1.0 *cpow( 37.0 ,-z);
+            total -= 1.0 *cpow( 38.0 ,-z);
+            total += 1.0 *cpow( 39.0 ,-z);
+            total -= 1.0 *cpow( 40.0 ,-z);
+            total += 0.999999999999 *cpow( 41.0 ,-z);
+            total -= 0.999999999993 *cpow( 42.0 ,-z);
+            total += 0.999999999967 *cpow( 43.0 ,-z);
+            total -= 0.999999999849 *cpow( 44.0 ,-z);
+            total += 0.999999999345 *cpow( 45.0 ,-z);
+            total -= 0.999999997316 *cpow( 46.0 ,-z);
+            total += 0.999999989584 *cpow( 47.0 ,-z);
+            total -= 0.999999961694 *cpow( 48.0 ,-z);
+            total += 0.999999866391 *cpow( 49.0 ,-z);
+            total -= 0.999999557763 *cpow( 50.0 ,-z);
+            total += 0.999998610183 *cpow( 51.0 ,-z);
+            total -= 0.999995850775 *cpow( 52.0 ,-z);
+            total += 0.999988226856 *cpow( 53.0 ,-z);
+            total -= 0.999968236159 *cpow( 54.0 ,-z);
+            total += 0.999918477384 *cpow( 55.0 ,-z);
+            total -= 0.999800882334 *cpow( 56.0 ,-z);
+            total += 0.999536974522 *cpow( 57.0 ,-z);
+            total -= 0.998974495648 *cpow( 58.0 ,-z);
+            total += 0.997835876492 *cpow( 59.0 ,-z);
+            total -= 0.995646719107 *cpow( 60.0 ,-z);
+            total += 0.991649207343 *cpow( 61.0 ,-z);
+            total -= 0.984716792959 *cpow( 62.0 ,-z);
+            total += 0.973300944566 *cpow( 63.0 ,-z);
+            total -= 0.955453081022 *cpow( 64.0 ,-z);
+            total += 0.928966746122 *cpow( 65.0 ,-z);
+            total -= 0.891667921733 *cpow( 66.0 ,-z);
+            total += 0.841841247931 *cpow( 67.0 ,-z);
+            total -= 0.778723360615 *cpow( 68.0 ,-z);
+            total += 0.702940642314 *cpow( 69.0 ,-z);
+            total -= 0.616744113469 *cpow( 70.0 ,-z);
+            total += 0.523921171101 *cpow( 71.0 ,-z);
+            total -= 0.429345802791 *cpow( 72.0 ,-z);
+            total += 0.338242607094 *cpow( 73.0 ,-z);
+            total -= 0.255341711397 *cpow( 74.0 ,-z);
+            total += 0.184146623366 *cpow( 75.0 ,-z);
+            total -= 0.12650249303 *cpow( 76.0 ,-z);
+            total += 0.0825511040061 *cpow( 77.0 ,-z);
+            total -= 0.0510341415687 *cpow( 78.0 ,-z);
+            total += 0.0298090705872 *cpow( 79.0 ,-z);
+            total -= 0.016406284493 *cpow( 80.0 ,-z);
+            total += 0.0084847321458 *cpow( 81.0 ,-z);
+            total -= 0.00411120427985 *cpow( 82.0 ,-z);
+            total += 0.00186063382781 *cpow( 83.0 ,-z);
+            total -= 0.000783909650972 *cpow( 84.0 ,-z);
+            total += 0.000306337806925 *cpow( 85.0 ,-z);
+            total -= 0.000110588205969 *cpow( 86.0 ,-z);
+            total += 3.67128975702e-05 *cpow( 87.0 ,-z);
+            total -= 1.11503033147e-05 *cpow( 88.0 ,-z);
+            total += 3.07982712827e-06 *cpow( 89.0 ,-z);
+            total -= 7.68268152009e-07 *cpow( 90.0 ,-z);
+            total += 1.71653488863e-07 *cpow( 91.0 ,-z);
+            total -= 3.40094041111e-08 *cpow( 92.0 ,-z);
+            total += 5.90175601307e-09 *cpow( 93.0 ,-z);
+            total -= 8.83058253287e-10 *cpow( 94.0 ,-z);
+            total += 1.1160977525e-10 *cpow( 95.0 ,-z);
+            total -= 1.15857119326e-11 *cpow( 96.0 ,-z);
+            total += 9.48336088955e-13 *cpow( 97.0 ,-z);
+            total -= 5.73898081536e-14 *cpow( 98.0 ,-z);
+            total += 2.28261276337e-15 *cpow( 99.0 ,-z);
+            total -= 4.47571130073e-17 *cpow( 100.0 ,-z);
+
+
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+
+
+        complex zetag(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 0.999999999999 *cpow( 10.0 ,-z);
+            total += 0.99999999998 *cpow( 11.0 ,-z);
+            total -= 0.999999999735 *cpow( 12.0 ,-z);
+            total += 0.999999997107 *cpow( 13.0 ,-z);
+            total -= 0.999999973564 *cpow( 14.0 ,-z);
+            total += 0.99999979531 *cpow( 15.0 ,-z);
+            total -= 0.999998644649 *cpow( 16.0 ,-z);
+            total += 0.999992264978 *cpow( 17.0 ,-z);
+            total -= 0.99996169714 *cpow( 18.0 ,-z);
+            total += 0.999834476711 *cpow( 19.0 ,-z);
+            total -= 0.999372646647 *cpow( 20.0 ,-z);
+            total += 0.997905448059 *cpow( 21.0 ,-z);
+            total -= 0.993815695896 *cpow( 22.0 ,-z);
+            total += 0.983794506135 *cpow( 23.0 ,-z);
+            total -= 0.962183592565 *cpow( 24.0 ,-z);
+            total += 0.921145847114 *cpow( 25.0 ,-z);
+            total -= 0.852537436761 *cpow( 26.0 ,-z);
+            total += 0.751642715653 *cpow( 27.0 ,-z);
+            total -= 0.621346807473 *cpow( 28.0 ,-z);
+            total += 0.47396013731 *cpow( 29.0 ,-z);
+            total -= 0.328445893083 *cpow( 30.0 ,-z);
+            total += 0.203648931086 *cpow( 31.0 ,-z);
+            total -= 0.111255622362 *cpow( 32.0 ,-z);
+            total += 0.0526848641535 *cpow( 33.0 ,-z);
+            total -= 0.0212286807239 *cpow( 34.0 ,-z);
+            total += 0.0071162051027 *cpow( 35.0 ,-z);
+            total -= 0.00192702152025 *cpow( 36.0 ,-z);
+            total += 0.000404373755448 *cpow( 37.0 ,-z);
+            total -= 6.16229812906e-05 *cpow( 38.0 ,-z);
+            total += 6.06127684826e-06 *cpow( 39.0 ,-z);
+            total -= 2.8863223087e-07 *cpow( 40.0 ,-z);
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+
+        complex zetaf(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 1.0 *cpow( 10.0 ,-z);
+            total += 1.0 *cpow( 11.0 ,-z);
+            total -= 1.0 *cpow( 12.0 ,-z);
+            total += 1.0 *cpow( 13.0 ,-z);
+            total -= 1.0 *cpow( 14.0 ,-z);
+            total += 1.0 *cpow( 15.0 ,-z);
+            total -= 1.0 *cpow( 16.0 ,-z);
+            total += 1.0 *cpow( 17.0 ,-z);
+            total -= 1.0 *cpow( 18.0 ,-z);
+            total += 1.0 *cpow( 19.0 ,-z);
+            total -= 1.0 *cpow( 20.0 ,-z);
+            total += 1.0 *cpow( 21.0 ,-z);
+            total -= 1.0 *cpow( 22.0 ,-z);
+            total += 1.0 *cpow( 23.0 ,-z);
+            total -= 1.0 *cpow( 24.0 ,-z);
+            total += 1.0 *cpow( 25.0 ,-z);
+            total -= 1.0 *cpow( 26.0 ,-z);
+            total += 1.0 *cpow( 27.0 ,-z);
+            total -= 1.0 *cpow( 28.0 ,-z);
+            total += 1.0 *cpow( 29.0 ,-z);
+            total -= 0.999999999999 *cpow( 30.0 ,-z);
+            total += 0.999999999993 *cpow( 31.0 ,-z);
+            total -= 0.999999999958 *cpow( 32.0 ,-z);
+            total += 0.99999999977 *cpow( 33.0 ,-z);
+            total -= 0.999999998826 *cpow( 34.0 ,-z);
+            total += 0.999999994425 *cpow( 35.0 ,-z);
+            total -= 0.999999975311 *cpow( 36.0 ,-z);
+            total += 0.999999897916 *cpow( 37.0 ,-z);
+            total -= 0.999999605413 *cpow( 38.0 ,-z);
+            total += 0.999998572723 *cpow( 39.0 ,-z);
+            total -= 0.999995164122 *cpow( 40.0 ,-z);
+            total += 0.999984638451 *cpow( 41.0 ,-z);
+            total -= 0.999954211941 *cpow( 42.0 ,-z);
+            total += 0.999871835174 *cpow( 43.0 ,-z);
+            total -= 0.999662861884 *cpow( 44.0 ,-z);
+            total += 0.999165977116 *cpow( 45.0 ,-z);
+            total -= 0.998058314891 *cpow( 46.0 ,-z);
+            total += 0.995742967433 *cpow( 47.0 ,-z);
+            total -= 0.99120444146 *cpow( 48.0 ,-z);
+            total += 0.982861914112 *cpow( 49.0 ,-z);
+            total -= 0.968483209287 *cpow( 50.0 ,-z);
+            total += 0.945250708037 *cpow( 51.0 ,-z);
+            total -= 0.910070449882 *cpow( 52.0 ,-z);
+            total += 0.860163877542 *cpow( 53.0 ,-z);
+            total -= 0.793872883338 *cpow( 54.0 ,-z);
+            total += 0.711473797085 *cpow( 55.0 ,-z);
+            total -= 0.61570118107 *cpow( 56.0 ,-z);
+            total += 0.511700994761 *cpow( 57.0 ,-z);
+            total -= 0.406296055119 *cpow( 58.0 ,-z);
+            total += 0.306706560424 *cpow( 59.0 ,-z);
+            total -= 0.219105892339 *cpow( 60.0 ,-z);
+            total += 0.147479463728 *cpow( 61.0 ,-z);
+            total -= 0.0931361497838 *cpow( 62.0 ,-z);
+            total += 0.0549547340859 *cpow( 63.0 ,-z);
+            total -= 0.0301695408101 *cpow( 64.0 ,-z);
+            total += 0.0153435553638 *cpow( 65.0 ,-z);
+            total -= 0.00719589395219 *cpow( 66.0 ,-z);
+            total += 0.00309661947376 *cpow( 67.0 ,-z);
+            total -= 0.00121604107988 *cpow( 68.0 ,-z);
+            total += 0.000433081317202 *cpow( 69.0 ,-z);
+            total -= 0.000138881266738 *cpow( 70.0 ,-z);
+            total += 3.97663884835e-05 *cpow( 71.0 ,-z);
+            total -= 1.00645969777e-05 *cpow( 72.0 ,-z);
+            total += 2.22373942978e-06 *cpow( 73.0 ,-z);
+            total -= 4.22231110803e-07 *cpow( 74.0 ,-z);
+            total += 6.7493951467e-08 *cpow( 75.0 ,-z);
+            total -= 8.83137692976e-09 *cpow( 76.0 ,-z);
+            total += 9.08146663759e-10 *cpow( 77.0 ,-z);
+            total -= 6.88128744395e-11 *cpow( 78.0 ,-z);
+            total += 3.41565115257e-12 *cpow( 79.0 ,-z);
+            total -= 8.33085646967e-14 *cpow( 80.0 ,-z);
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+
+        complex zetaog(complex z) {
+            complex total = zero;
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 ) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+            
+            // bool sub = false;
+            // for(float n = 1.0; n < 100.0; n++){
+            //      if(sub) {
+            //          total -= cpow(n, -z);
+            //      } else {
+            //          total += cpow(n, -z);
+            //      }
+            //      sub = !sub;
+            // }
+
+            const float nmax = 20.0;
+            for(float n = 0.0; n <= nmax; n++) {
+                bool sub = false;
+                complex ktotal = zero;
+                float bincoef = 1.0;
+                for(float k = 0.0; k <= nmax; k++) {
+                    if(k > n) break;
+                    if(k != 0.0) bincoef *= (n-k+1.0)/k;
+                    if(sub) {
+                         ktotal -= bincoef*cpow(k+1.0, -z);
+                     } else {
+                         ktotal += bincoef*cpow(k+1.0, -z);
+                     }
+                    sub = !sub;
+                }
+                total += pow(2.0,-n-1.0)*ktotal;
+            }
+            
+            //if(isnan(total.x)) {
+            //    total = z;
+            //}
+            //total = z;
+            total = mul(total, div(one, one - cpow(2.0,one-z)));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+            return total;
+        }
+        
+        complex sgn(complex z) {
+            //return z/length(z);
+            return z/length(z);
+        }
+
+        complex step(complex z) {
+            return 0.5*(one + sgn(z));
+        }
+
+        complex erf(complex z){
+            //https://en.wikipedia.org/wiki/Error_function#Numerical_approximations
+            float a = 0.147;//8.0*(pi-3.0)/(3.0*pi*(4.0-pi));
+            return mul(one, csqrt(one - cexp(mul(-mul(z,z),div(complex(0,4.0/pi) + a*mul(z,z), one+a*mul(z,z))))));
+        }
+
+        complex lt(complex z, complex h) {
+            if(z.x < h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        complex gt(complex z, complex h) {
+            if(z.x > h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        vec4 hsv_to_rgb(float H, float S, float V) {
+            vec4 color;
+
+            float Hp = degrees(mod(H,2.0*pi))/60.0;
+            float C = V*S;
+
+            float X = C * (1.0 - abs(mod(Hp, 2.0) -1.0));
+
+            int val = int(Hp);
+
+
+                if(val == 0)
+                    color = vec4(C, X, 0.0, 1.0);
+
+                if(val == 1)
+                    color = vec4(X, C, 0.0, 1.0);
+
+                if(val == 2)
+                    color = vec4(0.0, C, X, 1.0);
+
+                if(val == 3)
+                    color = vec4(0.0, X, C, 1.0);
+
+                if(val == 4)
+                    color = vec4(X, 0.0, C, 1.0);
+
+                if(val == 5 || val == 6)
+                    color = vec4(C, 0.0, X, 1.0);
+
+            float m = V - C;
+            color.x += m;
+            color.y += m;
+            color.z += m;
+
+            return color;
+        }
+        /*
+        complex testfn(complex z) {
+            if(z.x > 10.0) return complex(1./0., 1./0.);
+            return z;
+        }
+        */
+
+        bool in_circle(vec2 center, float r, complex z){
+            return length(z-center) < r;
+        }
+
+        bool in_annulus(vec2 center, float r1, float r2, complex z){
+            return length(z-center) > r1 && length(z-center) < r2;
+        }
+
+        bool isnan(float val)
+        {
+          return (val <= 0.0 || 0.0 <= val) ? false : true;
+        }
+
+        vec4 get_color(complex z) {
+
+            //if(isnan(z.x)) return vec4(1.,0.,0.,1.);
+            //if(isnan(z.y)) return vec4(0.,1.,0.,1.);
+
+            vec4 texcolor = vec4(0.0,0.0,0.0,0.0);
+            //color = texture2D(sam, (z+complex(1.0,1.0))/2.0);//(z+complex(1.0,1.0))/2.0 );
+            
+            //if(z.x <= 1.0 && z.x >=-1.0 && z.y <= 1.0 && z.y >= -1.0) {
+                //TODO: add scale so not all images are the same size and works from np2 images
+                vec2 uv = vec2(mod((texscale.x*z.x+1.0)/2.0, 1.0), mod((texscale.y*z.y+1.0)/2.0, 1.0));
+                texcolor = texture2D(sam, uv );
+                                       //texcolor = texture2D(sam, (z+complex(1.0,1.0))/2.0 )
+            //} 
+
+            vec4 bgcolor;
+            if (texcolor.w != 1.0) {
+                // Domain coloring! --right now just white
+                float r = length(z);
+                //r = 1.0;
+                //float angle = arg(z);
+
+                if(dcoloring){
+                    //float degrade = r+0.5;//1.0;//exp(r+e); //r+0.5;
+                    //float vf = $valfun$;
+                    bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                    //if(isnan(vf)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                    //if(isinf(z.x)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                }
+
+                float size = 1.0/16.0;
+                float freq = 0.2;
+
+                {
+                    /*
+                    if(mod(z.x, freq) < size && mod(z.y, freq) < size) {
+                        bgcolor = vec4(0.0,0.0,0.0,1.0);
+                    }
+                    */
+                    if(checkerboard){
+                        if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                } 
+                //20.5
+                //54.6
+                if(r > 20.1)  {
+                    if(infstripes){
+                        if (mod(r*log(r), (r)) < (r)/2.0) {
+                            bgcolor = vec4(0.1,0.1,0.1,1.0);
+                        }
+
+                        if (mod(r*log(r), (r)) > (r)/2.0) {
+                            bgcolor = vec4(0.2,0.2,0.2,1.0);
+                        }
+                    }
+                }
+                /*
+                if(mod(z.x+size/2.0, freq) < size && mod(z.y+size/2.0, freq) < size) {
+                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                }*/
+
+                if(unitcircle){
+                    if(!( in_circle(vec2(1,0),size, z) || 
+                          in_circle(vec2(0,1),size, z) || 
+                          in_circle(vec2(-1,0),size, z) ||
+                          in_circle(vec2(0,-1),size, z) )) {
+
+                        if (r <= 1.0 && r > 1.0-size) {
+                            bgcolor = vec4(0.4,0.4,0.4,1.0);
+                        }
+
+                        if (r >= 1.0 && r < 1.0 + size) {
+                            bgcolor = vec4(0.75,0.75,0.75,1.0);
+                        }
+                    } else if(!dcoloring){
+                        if(r <= 1.0 && r > 1.0-size || r >= 1.0 && r < 1.0 + size) {
+                            float r = length(z);
+                            bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                            if(checkerboard){
+                                if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                if(originindicator) {
+                    if (r < size) {
+                        bgcolor = vec4(1.,1.,1.,1.);
+                        //bgcolor.w = 1.0;
+                        if (mod(floor(z.x/size),2.0) == mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                }
+
+                texcolor = bgcolor;
+            }
+
+
+            //vec4 finalcolor = texcolor*texcolor.w + bgcolor*(1.0-texcolor.w);
+            //finalcolor.w = 1.0;
+            if(isnan(texcolor.x) || isinf(texcolor.x)) return vec4(0,0,0,1);
+            if(isnan(texcolor.y) || isinf(texcolor.y)) return vec4(0,0,0,1);
+            if(isnan(texcolor.z) || isinf(texcolor.z)) return vec4(0,0,0,1);
+            return texcolor;
+            
+        }
+
+
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        complex crand(complex z) {
+            return 2.0*vec2(rand(z), rand(z+rand(z)))-vec2(1,1);
+        }
+
+        #define aasamples ($aasamples$)
+       // #define astep ($astep$)
+
+        float to_step(int cur) {
+        	if(aasamples == 1) {
+                return 0.0;
+            } else {
+        	   return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(aasamples-1);
+            }
+        	
+            /*
+        	if(mod(float(arange),2.0) == 0){
+        		return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(arange-1)
+        	} else {
+        		return (1.0/512.0)*float(cur-arange/2)/float(arange);
+        	}*/
+
+
+        	//return (1.0/512.0)* (float(cur)-0.5*float(arange))/float(arange);
+            //return 1.0*float(cur)/(512.0*float(arange));
+        }
+
+        vec2 to_step2(int c1, int c2) {
+            vec2 res = vec2(to_step(c1), to_step(c2));
+            return res * zoom;//+ (0.5/512.0)*rand(zin-res) ;//* rand(zin);
+        }
+
+        const float   fepsilon = 0.001; //0.000001 errors
+        const complex cepsilon = complex(fepsilon, 0.);
+        const float   iteramt = 100.0;
+
+        complex inttest(complex zin){
+        	complex total = zero;
+        	complex z = zero;
+
+        	for(float _iter_ =0.0; _iter_ < iteramt; _iter_+=1.0){
+        		z += (zin-zero)*(1.0/iteramt);
+
+        		total += mul(cexp(z),((zin)/iteramt)); //this would be replaced by the actual function of z
+        	}
+        	return total;
+        }
+
+		/*
+		User defined uniforms and functions
+        */
+        $uniforms$
+
+        $functions$
+
+        complex trans(complex z, complex w, complex t) {
+            float st = max(min((t.x+1.0)/2.0,1.0),0.0);
+            return st*w + (1.0-st)*z;
+        }
+
+        void main() {
+            vec4 color = vec4(0.0);
+
+            
+            if(renderImage) {
+	            if(invert) {
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex zf = zin + to_step2(_x_,_y_); 
+
+	                        complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+	                        z = crand(z);//$parsed$;
+	                        //z = zf;
+	                        complex zprev = z;
+
+
+	                        //zf = zero;
+	                        //z = zin;
+
+	                        //z = zin;
+	                        bool retried = false;
+
+	                        if( !(isnan(z.x) || isinf(z.x))){
+	                            for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+	                                complex dif;
+	                                for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+	                                    complex df = -(($parsed$) -zf);
+	                                    z += cepsilon;
+	                                    df += ($parsed$) -zf;
+	                                    df /= fepsilon;
+	                                    z -=cepsilon;
+
+	                                    //df = div(one, mul(one-z, one-z));
+	                                    //if(z == zero) break;
+	                                    //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+	                                    complex fz = (($parsed$) - zf);
+	                                    //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+	                                    //if(fz == zero) break;
+	                                    dif = div(fz,df);
+	                                    z = z - dif;
+	                                }
+	                                //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+	                                if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+	                                //retried = true;
+	                                z = crand(zprev);
+	                                zprev = z; 
+	                            }
+	                        }
+
+	                        color += get_color( z )/float(aasamples*aasamples);
+	                    }
+	                }
+	            } else { 
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex z = zin + to_step2(_x_,_y_); 
+	                        color += get_color( $parsed$ )/float(aasamples*aasamples);
+	                    }
+	                }
+	            
+	            }
+	            color.w = 1.0;
+        	} else {
+        		if(invert) {
+                    complex zf = zin; 
+
+                    complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+                    z = crand(z);//$parsed$;
+                    //z = zf;
+                    complex zprev = z;
+
+
+                    //zf = zero;
+                    //z = zin;
+
+                    //z = zin;
+                    bool retried = false;
+
+                    if( !(isnan(z.x) || isinf(z.x))){
+                        for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+                            complex dif;
+                            for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+                                complex df = -(($parsed$) -zf);
+                                z += cepsilon;
+                                df += ($parsed$) -zf;
+                                df /= fepsilon;
+                                z -=cepsilon;
+
+                                //df = div(one, mul(one-z, one-z));
+                                //if(z == zero) break;
+                                //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+                                complex fz = (($parsed$) - zf);
+                                //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+                                //if(fz == zero) break;
+                                dif = div(fz,df);
+                                z = z - dif;
+                            }
+                            //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+                            if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+                            //retried = true;
+                            z = crand(zprev);
+                            zprev = z; 
+                        }
+                    }
+
+                    color = vec4(zin, z);
+
+	            } else { 
+
+	                complex z = zin; 
+	                color = vec4(zin, $parsed$);
+	            }
+        	}
+                                
+            gl_FragColor = color;
+        }
+    </script>
+
+    <script id="hyperbolicfs-incomplete" type="glsl">
+        precision highp float;
+
+        #define complex vec2 
+        const float pi = 3.14159265359;
+        const complex cpi = complex(3.14159265359, 0.0);
+
+        const float e = 2.71828182846;
+        const complex ce = complex(2.71828182846, 0.0);
+
+        const complex i = complex(0.0, 1.0);
+        const complex one = complex(1.0, 0.0);
+        const complex zero = complex(0.0,0.0);
+
+        complex _zprime_ = zero;
+
+        
+
+        varying complex zin;
+
+        uniform sampler2D sam;
+        uniform vec2 scale; 
+        uniform vec2 zoom;
+
+        uniform vec2 texscale;
+
+        uniform bool dcoloring;
+        uniform bool checkerboard;
+        uniform bool originindicator;
+        uniform bool unitcircle;
+        uniform bool infstripes;     
+        uniform bool invert;          
+
+        uniform bool renderImage;
+
+
+        bool isnan(float);
+
+        bool isinf(float val) {
+            return (val != 0.0 && val * 2.0 == val) ? true : false;
+        }
+       
+        
+        complex conjugate(complex z) {
+            return complex(z.x, -z.y);
+        }
+
+        complex mul(complex z, complex v) {
+            return complex(z.x*v.x + z.y*v.y, z.x*v.y + z.y*v.x);
+        }
+
+        complex div(complex z, complex v) {
+            if(isinf(v.x) || isinf(v.y)) return zero;
+            //if(isnan(v.x) || isnan(v.y)) return -one;
+            return mul(z, conjugate(v))/(v.x*v.x - v.y*v.y); //(mul(v, conjugate(v)).x);
+        }
+
+        complex re(complex z) {
+            return complex(z.x, 0.0);
+        }
+
+        complex im(complex z) {
+            return complex(z.y, 0.0);
+        }
+
+        float arg(complex z) {
+            return atan(z.y, z.x);
+        }
+
+        complex carg(complex z) {
+            return complex(arg(z), 0.0);
+        }
+
+        complex cargi(complex z) {
+            return complex(0.0, arg(z));
+        }
+
+        //Log base e
+        complex clogtaylor(complex z) {
+            z -= one;
+            complex res = zero;
+            complex zn = one;
+            float nfac = 0.0;
+            float sign = -1.0;
+            for(float n=1.0; n < 25.0; n+=1.0){
+                zn = mul(zn,z);
+                nfac += 1.0;
+                sign *= -1.0;
+                res += sign*zn/nfac;
+
+            }
+            return res;
+        }
+
+        float atanh(float x){
+        	x = max(-1.0, x);
+        	x = min(+1.0, x);
+        	return log((1.0+x)/(1.0-x))/2.0;
+        	//return 1.0;
+        }
+
+        //Log base e
+        complex clog(complex z) {
+            float c = z.y/z.x;
+            return complex(log(z.x) + 0.5*log(1.0-c*c), atanh(c)); 
+        }
+
+        complex ln(complex z) {
+            return clog(z);
+        }
+
+        //Log base b
+        complex clog(complex z, complex b) {
+            return div(clog(z),clog(b));
+        }
+
+
+        complex clen(complex z) {
+           return complex(length(z), 0.0);
+        }
+
+
+        float sinh(float x) {
+        	return (exp(x) - exp(-x))/2.0;
+        }
+
+        float cosh(float x) {
+        	return (exp(x) + exp(-x))/2.0;
+        }
+        //Special case of cpow, e^z
+        complex cexp(complex z) {
+            // Computes e^z = e^(x+iy) = e^x (cos(y) + isin(y))
+            return exp(z.x)*complex(cosh(z.y), sinh(z.y));
+        }
+
+        //Special case, for efficiency
+        complex cpow(float r, complex z) {
+            //Computes r^z = r^(c+di) = r^z r^di = r^z e^log(r)di
+            return pow(r,z.x) *complex(cos(z.y*log(r)), sin(z.y* log(r)));
+        }
+
+        //Log of abs z
+        float alog(float z){
+            return log(abs(z));
+        }
+
+
+        complex cpow(complex z, complex w) {
+            // Computes z^w = (|z|^2)^(0.5w.x) * e^(-w.y*arg(z)) * e^(i(w.x*arg(z) + 0.5*w.y*log(|z|^2)))
+            //if(z.y == 0.0 ) return cpow(z.x, w);
+
+            if(z == zero) return zero;
+
+            float c = z.y/z.x;
+
+            //If we don't have integer values of w.x and w.y, nothing is defined outside of 
+            //+-45 degrees region on the hyperbolic plane
+            if(z.x < 0.0 || abs(c) > 1.0){
+            	if(mod(w.x, 1.0) != 0.0 || mod(w.y, 1.0) != 0.0){
+            		//NaN
+                  	return clog(-one);
+               }
+            }
+
+            //logz, but not quite. I take the abs of every log input and account for this later
+            //Non-integer w.x and w.y will only work for a single quadrant, as the other quadrants
+            //will have imaginary (i^2 = -1) components (that cancel out at these integer cases)
+            //log(z) = log(1-c^2)+log(z.x) + i_h atanh(c) 
+            complex logz = complex(0.5*alog(1.0-c*c) + alog(z.x), 0.5*(alog(1.0+c) - alog(1.0-c))); 
+
+            //Multiplies the result at the end of the computation to correct for the alogs we use in the 
+            //above equation. Only applicable if we have integer w.x and w.y
+            complex correction = one; 
+
+            //if z.x < 0 log(z.x) would be imaginary, but e^log(z.x) is still real if z.x is an integer
+            if(z.x < 0.0){
+               correction.x = cos(w.x*pi)*cos(w.y*pi);
+            }
+
+            //if c != [-1,1] we need a correction factor for log(1-cc) and atanh(c)
+            if(abs(c)  > 1.0){
+            	complex q;
+
+            	if(c < -1.0) {
+            		q = complex(w.x + w.y, w.x + w.y);
+            	} else {
+            		q = complex(w.x-w.y, w.y-w.x);
+            	}
+               	correction = mul(correction, complex(cos(q.x*pi/2.0)*cos(q.y*pi/2.0), -sin(q.x*pi/2.0)*sin(q.y*pi/2.0)));
+            } 
+
+            return mul(correction,cexp(mul(w, logz)));
+        }
+/*
+        complex cpow(complex z, complex w) {
+            // Computes z^w = (|z|^2)^(0.5w.x) * e^(-w.y*arg(z)) * e^(i(w.x*arg(z) + 0.5*w.y*log(|z|^2)))
+            //if(z.y == 0.0 ) return cpow(z.x, w);
+
+            if(z == zero) return zero;
+
+            
+            float c = z.y/z.x;
+
+            //Not quite complete, i've left out a log(z.x) term
+            complex logzmx = complex(0.5*log(1.0-c*c), atanh(c)); 
+            complex logx = zero;
+            float ewipi = 1.0; //e^ipiw
+
+            if(z.x < 0.0){
+               logx.x = log(-z.x);
+               ewipi *= cos(w.x * pi)*cos(w.y*pi);
+
+               if(mod(w.x, 1.0) != 0.0 || mod(w.y, 1.0) != 0.0){
+                  ewipi = sqrt(-1.0);
+               }
+            } else {
+               logx.x = log(z.x);
+            }
+
+            return ewipi*cexp(mul(w, logzmx +logx));
+            
+
+//return pow(dot(z, z), 0.5*w.x) * cexp(complex(-w.y*arg(z), w.x*arg(z) + 0.5*w.y*log(dot(z,z))));
+        }
+        */
+
+
+
+        complex csqrt(complex z) {
+            return cpow(z, complex(0.5, 0));
+        }
+
+        complex csin(complex z) {
+            //From sin addition formula + taylor series
+            return complex(sin(z.x)*cos(z.y), sin(z.y)*cos(z.x));
+        }
+
+        complex ccos(complex z) {
+            //return csin(z + cpi/2.0);
+            return complex(cos(z.x)*cos(z.y), -sin(z.y)*sin(z.x));
+        }
+
+        complex ctan(complex z) {
+            return div(csin(z), ccos(z));
+        }
+
+        complex actan(complex z) {
+            //From atan addition formula
+        	float a = z.x;
+        	float b = z.y;
+            if(isnan(a)){
+                 return complex(a,a);
+            }
+            if(isnan(b)){
+                 return complex(b,b);
+            }
+            float t = sqrt( pow(a*a - b*b -1.0, 2.0) +4.0*a*a);
+    	    float u = (t + a*a - b*b -1.0)/(2.0*a);
+            float v = (t - a*a + b*b -1.0)/(2.0*b);
+            return complex(atan(u), atan(v));
+        }
+
+        complex acsin(complex z) {
+                return actan(div(z, csqrt(one-mul(z,z))));
+        }
+
+        complex accos(complex z) {
+                 return cpi/2.0 - acsin(z);
+        }
+
+        complex csinh(complex z) {
+            return 0.5*(cexp(z) - cexp(-z));
+        }
+
+        complex ccosh(complex z) {
+            return 0.5*(cexp(z) + cexp(-z));
+        }
+
+        complex ctanh(complex z) {
+            return div(csinh(z), ccosh(z));
+        }
+
+
+        complex acsinh(complex z) {
+            return clog(z + cpow(mul(z,z) + one,complex(0.5, 0.0)));
+        }
+
+        complex accosh(complex z) {
+            return clog(z + cpow(mul(z,z) - one,complex(0.5, 0.0)));
+        }
+
+        complex actanh(complex z) {
+            return 0.5*(clog(complex(1,0)+z) - clog(complex(1,0)-z));
+        }
+
+
+
+        complex csec(complex z){
+            return div(z,ccos(z));
+        }
+
+        complex ccsc(complex z){
+            return div(z,csin(z));
+        }
+
+        complex ccot(complex z){
+            return div(ccos(z),csin(z));
+        }
+
+        complex acsec(complex z){
+            return accos(div(one,z));
+        }
+
+        complex accsc(complex z){
+            return acsin(div(one,z));
+        }
+
+        complex accot(complex z){
+            return actan(div(one,z));
+        }
+
+
+        //Hyperbolic trig
+
+        complex csech(complex z){
+            return div(one,ccosh(z));
+        }
+
+        complex ccsch(complex z){
+            return div(one,csinh(z));
+        }
+
+        complex ccoth(complex z){
+            return div(ccosh(z),csinh(z));
+        }
+
+        complex acsech(complex z){
+            return accosh(div(one,z));
+        }
+
+        complex accsch(complex z){
+            return acsinh(div(one,z));
+        }
+
+        complex accoth(complex z){
+            return actanh(div(one,z));
+        }
+
+
+
+        
+        complex mandelbrot(complex z) {
+            complex zp = complex(0.0);
+            for(int n = 0; n < 8; n++) {
+                zp  = mul(zp, zp) + z;
+            }
+            return zp;
+        }
+        
+
+        complex gamma(complex z) {
+            //https://en.wikipedia.org/wiki/Lanczos_approximation
+
+            const int plength = 8;
+            float p[plength];
+            p[0] = 676.5203681218851;
+            p[1] = -1259.1392167224028;  
+            p[2] = 771.32342877765313;
+            p[3] = -176.61502916214059;
+            p[4] = 12.507343278686905;
+            p[5] = -0.13857109526572012;
+            p[6] = 9.9843695780195716e-6;
+            p[7] = 1.5056327351493116e-7;
+
+            complex ref;
+            bool inv = false;
+
+            if(z.x < 0.5){
+                ref = div(cpi, csin(pi*z));
+                z = one-z;
+                inv = true;
+            } 
+            z = z-one;
+            complex x = one;
+            for(int n = 0; n < plength; n++){
+                x += div(complex(p[n],0.0), z + complex(n+1,0));
+            }
+            complex t = z + complex(plength,0) - complex(0.5,0.0);
+
+            if(inv) {
+                return div(ref, sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x));
+            } else {
+                return sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x);
+            }
+        }
+
+
+        complex factorial(complex z) {
+            //if(z.y == 0.0 ) return complex(stirling(z.x),0.0);
+            return gamma(z+one);
+        }
+
+        
+        complex sgn(complex z) {
+            //return z/length(z);
+            return z/length(z);
+        }
+
+        complex step(complex z) {
+            return 0.5*(one + sgn(z));
+        }
+
+        complex erf(complex z){
+            //https://en.wikipedia.org/wiki/Error_function#Numerical_approximations
+            float a = 0.147;//8.0*(pi-3.0)/(3.0*pi*(4.0-pi));
+            return mul(one, csqrt(one - cexp(mul(-mul(z,z),div(complex(0,4.0/pi) + a*mul(z,z), one+a*mul(z,z))))));
+        }
+
+        complex lt(complex z, complex h) {
+            if(z.x < h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        complex gt(complex z, complex h) {
+            if(z.x > h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        vec4 hsv_to_rgb(float H, float S, float V) {
+            vec4 color;
+
+            float Hp = degrees(mod(H,2.0*pi))/60.0;
+            float C = V*S;
+
+            float X = C * (1.0 - abs(mod(Hp, 2.0) -1.0));
+
+            int val = int(Hp);
+
+
+                if(val == 0)
+                    color = vec4(C, X, 0.0, 1.0);
+
+                if(val == 1)
+                    color = vec4(X, C, 0.0, 1.0);
+
+                if(val == 2)
+                    color = vec4(0.0, C, X, 1.0);
+
+                if(val == 3)
+                    color = vec4(0.0, X, C, 1.0);
+
+                if(val == 4)
+                    color = vec4(X, 0.0, C, 1.0);
+
+                if(val == 5 || val == 6)
+                    color = vec4(C, 0.0, X, 1.0);
+
+            float m = V - C;
+            color.x += m;
+            color.y += m;
+            color.z += m;
+
+            return color;
+        }
+        /*
+        complex testfn(complex z) {
+            if(z.x > 10.0) return complex(1./0., 1./0.);
+            return z;
+        }
+        */
+
+        bool in_circle(vec2 center, float r, complex z){
+            return length(z-center) < r;
+        }
+
+        bool in_annulus(vec2 center, float r1, float r2, complex z){
+            return length(z-center) > r1 && length(z-center) < r2;
+        }
+
+        bool isnan(float val)
+        {
+          return (val <= 0.0 || 0.0 <= val) ? false : true;
+        }
+
+        vec4 get_color(complex z) {
+
+            //if(isnan(z.x)) return vec4(1.,0.,0.,1.);
+            //if(isnan(z.y)) return vec4(0.,1.,0.,1.);
+
+            vec4 texcolor = vec4(0.0,0.0,0.0,0.0);
+            //color = texture2D(sam, (z+complex(1.0,1.0))/2.0);//(z+complex(1.0,1.0))/2.0 );
+            
+            //if(z.x <= 1.0 && z.x >=-1.0 && z.y <= 1.0 && z.y >= -1.0) {
+                //TODO: add scale so not all images are the same size and works from np2 images
+                vec2 uv = vec2(mod((texscale.x*z.x+1.0)/2.0, 1.0), mod((texscale.y*z.y+1.0)/2.0, 1.0));
+                texcolor = texture2D(sam, uv );
+                                       //texcolor = texture2D(sam, (z+complex(1.0,1.0))/2.0 )
+            //} 
+
+            vec4 bgcolor;
+            if (texcolor.w != 1.0) {
+                // Domain coloring! --right now just white
+                float r = length(z);
+                //r = 1.0;
+                //float angle = arg(z);
+
+                if(dcoloring){
+                    //float degrade = r+0.5;//1.0;//exp(r+e); //r+0.5;
+                    //float vf = $valfun$;
+                    bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                    //if(isnan(vf)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                    //if(isinf(z.x)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                }
+
+                float size = 1.0/16.0;
+                float freq = 0.2;
+
+                {
+                    /*
+                    if(mod(z.x, freq) < size && mod(z.y, freq) < size) {
+                        bgcolor = vec4(0.0,0.0,0.0,1.0);
+                    }
+                    */
+                    if(checkerboard){
+                        if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                } 
+                //20.5
+                //54.6
+                if(r > 20.1)  {
+                    if(infstripes){
+                        if (mod(r*log(r), (r)) < (r)/2.0) {
+                            bgcolor = vec4(0.1,0.1,0.1,1.0);
+                        }
+
+                        if (mod(r*log(r), (r)) > (r)/2.0) {
+                            bgcolor = vec4(0.2,0.2,0.2,1.0);
+                        }
+                    }
+                }
+                /*
+                if(mod(z.x+size/2.0, freq) < size && mod(z.y+size/2.0, freq) < size) {
+                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                }*/
+
+                if(unitcircle){
+                    if(!( in_circle(vec2(1,0),size, z) || 
+                          in_circle(vec2(0,1),size, z) || 
+                          in_circle(vec2(-1,0),size, z) ||
+                          in_circle(vec2(0,-1),size, z) )) {
+
+                        if (r <= 1.0 && r > 1.0-size) {
+                            bgcolor = vec4(0.4,0.4,0.4,1.0);
+                        }
+
+                        if (r >= 1.0 && r < 1.0 + size) {
+                            bgcolor = vec4(0.75,0.75,0.75,1.0);
+                        }
+                    } else if(!dcoloring){
+                        if(r <= 1.0 && r > 1.0-size || r >= 1.0 && r < 1.0 + size) {
+                            float r = length(z);
+                            bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                            if(checkerboard){
+                                if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                if(originindicator) {
+                    if (r < size) {
+                        bgcolor = vec4(1.,1.,1.,1.);
+                        //bgcolor.w = 1.0;
+                        if (mod(floor(z.x/size),2.0) == mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                }
+
+                texcolor = bgcolor;
+            }
+
+
+            //vec4 finalcolor = texcolor*texcolor.w + bgcolor*(1.0-texcolor.w);
+            //finalcolor.w = 1.0;
+            if(isnan(texcolor.x) || isinf(texcolor.x)) return vec4(0,0,0,1);
+            if(isnan(texcolor.y) || isinf(texcolor.y)) return vec4(0,0,0,1);
+            if(isnan(texcolor.z) || isinf(texcolor.z)) return vec4(0,0,0,1);
+            return texcolor;
+            
+        }
+
+
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        complex crand(complex z) {
+            return 2.0*vec2(rand(z), rand(z+rand(z)))-vec2(1,1);
+        }
+
+        #define aasamples ($aasamples$)
+       // #define astep ($astep$)
+
+        float to_step(int cur) {
+        	if(aasamples == 1) {
+                return 0.0;
+            } else {
+        	   return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(aasamples-1);
+            }
+        	
+            /*
+        	if(mod(float(arange),2.0) == 0){
+        		return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(arange-1)
+        	} else {
+        		return (1.0/512.0)*float(cur-arange/2)/float(arange);
+        	}*/
+
+
+        	//return (1.0/512.0)* (float(cur)-0.5*float(arange))/float(arange);
+            //return 1.0*float(cur)/(512.0*float(arange));
+        }
+
+        vec2 to_step2(int c1, int c2) {
+            vec2 res = vec2(to_step(c1), to_step(c2));
+            return res * zoom;//+ (0.5/512.0)*rand(zin-res) ;//* rand(zin);
+        }
+
+        const float   fepsilon = 0.001; //0.000001 errors
+        const complex cepsilon = complex(fepsilon, 0.);
+        const float   iteramt = 100.0;
+
+        complex inttest(complex zin){
+        	complex total = zero;
+        	complex z = zero;
+
+        	for(float _iter_ =0.0; _iter_ < iteramt; _iter_+=1.0){
+        		z += (zin-zero)*(1.0/iteramt);
+
+        		total += mul(cexp(z),((zin)/iteramt)); //this would be replaced by the actual function of z
+        	}
+        	return total;
+        }
+
+		/*
+		User defined uniforms and functions
+        */
+        $uniforms$
+
+        $functions$
+
+        complex trans(complex z, complex w, complex t) {
+            float st = max(min((t.x+1.0)/2.0,1.0),0.0);
+            return st*w + (1.0-st)*z;
+        }
+
+        void main() {
+            vec4 color = vec4(0.0);
+
+            
+            if(renderImage) {
+	            if(invert) {
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex zf = zin + to_step2(_x_,_y_); 
+
+	                        complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+	                        z = crand(z);//$parsed$;
+	                        //z = zf;
+	                        complex zprev = z;
+
+
+	                        //zf = zero;
+	                        //z = zin;
+
+	                        //z = zin;
+	                        bool retried = false;
+
+	                        if( !(isnan(z.x) || isinf(z.x))){
+	                            for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+	                                complex dif;
+	                                for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+	                                    complex df = -(($parsed$) -zf);
+	                                    z += cepsilon;
+	                                    df += ($parsed$) -zf;
+	                                    df /= fepsilon;
+	                                    z -=cepsilon;
+
+	                                    //df = div(one, mul(one-z, one-z));
+	                                    //if(z == zero) break;
+	                                    //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+	                                    complex fz = (($parsed$) - zf);
+	                                    //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+	                                    //if(fz == zero) break;
+	                                    dif = div(fz,df);
+	                                    z = z - dif;
+	                                }
+	                                //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+	                                if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+	                                //retried = true;
+	                                z = crand(zprev);
+	                                zprev = z; 
+	                            }
+	                        }
+
+	                        color += get_color( z )/float(aasamples*aasamples);
+	                    }
+	                }
+	            } else { 
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex z = zin + to_step2(_x_,_y_); 
+	                        color += get_color( $parsed$ )/float(aasamples*aasamples);
+	                    }
+	                }
+	            
+	            }
+	            color.w = 1.0;
+        	} else {
+        		if(invert) {
+                    complex zf = zin; 
+
+                    complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+                    z = crand(z);//$parsed$;
+                    //z = zf;
+                    complex zprev = z;
+
+
+                    //zf = zero;
+                    //z = zin;
+
+                    //z = zin;
+                    bool retried = false;
+
+                    if( !(isnan(z.x) || isinf(z.x))){
+                        for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+                            complex dif;
+                            for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+                                complex df = -(($parsed$) -zf);
+                                z += cepsilon;
+                                df += ($parsed$) -zf;
+                                df /= fepsilon;
+                                z -=cepsilon;
+
+                                //df = div(one, mul(one-z, one-z));
+                                //if(z == zero) break;
+                                //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+                                complex fz = (($parsed$) - zf);
+                                //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+                                //if(fz == zero) break;
+                                dif = div(fz,df);
+                                z = z - dif;
+                            }
+                            //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+                            if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+                            //retried = true;
+                            z = crand(zprev);
+                            zprev = z; 
+                        }
+                    }
+
+                    color = vec4(zin, z);
+
+	            } else { 
+
+	                complex z = zin; 
+	                color = vec4(zin, $parsed$);
+	            }
+        	}
+                                
+            gl_FragColor = color;
+        }
+    </script>
+
+    <script id="dualfs-incomplete" type="glsl">
+        precision highp float;
+
+        #define complex vec2 
+        const float pi = 3.14159265359;
+        const complex cpi = complex(3.14159265359, 0.0);
+
+        const float e = 2.71828182846;
+        const complex ce = complex(2.71828182846, 0.0);
+
+        const complex i = complex(0.0, 1.0);
+        const complex one = complex(1.0, 0.0);
+        const complex zero = complex(0.0,0.0);
+
+        complex _zprime_ = zero;
+
+        
+
+        varying complex zin;
+
+        uniform sampler2D sam;
+        uniform vec2 scale; 
+        uniform vec2 zoom;
+
+        uniform vec2 texscale;
+
+        uniform bool dcoloring;
+        uniform bool checkerboard;
+        uniform bool originindicator;
+        uniform bool unitcircle;
+        uniform bool infstripes;     
+        uniform bool invert;          
+
+        uniform bool renderImage;
+
+
+        bool isnan(float);
+
+        bool isinf(float val) {
+            return (val != 0.0 && val * 2.0 == val) ? true : false;
+        }
+       
+        
+        complex conjugate(complex z) {
+            return complex(z.x, -z.y);
+        }
+
+        complex mul(complex z, complex v) {
+            return complex(z.x*v.x, z.x*v.y + z.y*v.x);//complex(z.x*v.x - z.y*v.y, z.x*v.y + z.y*v.x);
+        }
+
+        complex div(complex z, complex v) {
+            if(isinf(v.x) || isinf(v.y)) return zero;
+            //if(isnan(v.x) || isnan(v.y)) return -one;
+            return mul(z, conjugate(v))/(v.x*v.x); //(mul(v, conjugate(v)).x);
+        }
+
+        complex re(complex z) {
+            return complex(z.x, 0.0);
+        }
+
+        complex im(complex z) {
+            return complex(z.y, 0.0);
+        }
+
+        float arg(complex z) {
+            return atan(z.y, z.x);
+        }
+
+        complex carg(complex z) {
+            return complex(arg(z), 0.0);
+        }
+
+        complex cargi(complex z) {
+            return complex(0.0, arg(z));
+        }
+
+
+        complex clogtaylor(complex z) {
+            z -= one;
+            complex res = zero;
+            complex zn = one;
+            float nfac = 0.0;
+            float sign = -1.0;
+            for(float n=1.0; n < 25.0; n+=1.0){
+                zn = mul(zn,z);
+                nfac += 1.0;
+                sign *= -1.0;
+                res += sign*zn/nfac;
+
+            }
+            return res;
+        }
+
+        //Log base e
+        complex clog(complex z) {
+            //float r = log(z.x);
+            //z /= z.x;
+            //return (complex(r,0)+clogtaylor(z));
+            z.x = max(0.0, z.x);
+            return complex(log(z.x), z.y/z.x); 
+        }
+
+        complex ln(complex z) {
+            return clog(z);
+        }
+
+        //Log base b
+        complex clog(complex z, complex b) {
+            return div(clog(z),clog(b));
+        }
+
+
+        complex clen(complex z) {
+           return complex(length(z), 0.0);
+        }
+
+        complex ncpow(complex z, complex w){
+            if (z==zero) return zero;
+            float it = floor(w.x);
+            complex res = one;
+            complex zz = z;
+            for(int dummy = 0; dummy <20; dummy++){
+                if(mod(float(it), 2.0) != 0.0){
+                   res = mul(res,zz);
+                }
+                zz = mul(zz,zz);
+                it /= 2.0;
+                if(it < 1.0) return res;
+            }
+            return one + i;
+                                           
+        }
+
+
+        //Special case of cpow, e^z
+        complex cexp(complex z) {
+            return(exp(z.x)* complex(1,z.y));
+            
+        }
+
+
+        complex cpow(complex z, complex w) {
+            // Computes z^w = (|z|^2)^(0.5w.x) * e^(-w.y*arg(z)) * e^(i(w.x*arg(z) + 0.5*w.y*log(|z|^2)))
+            //if(z.y == 0.0 ) return cpow(z.x, w);
+            if(z == zero) return zero;
+
+
+            if(z.x >= 0.0) {
+            	return cexp(mul(w,clog(z)));
+            } else {
+            	//This case is only valid if w.x is integral and w.y=0, otherwise there
+            	//would be an imaginary (i^2=-1) component as well
+            	if(w.y != 0.0 || mod(w.x,1.0) != 0.0) {
+            		//NaN
+            		return clog(-one);
+            	}
+            	//Correction factor of cos(w.x pi)
+            	return cos(w.x*pi)*cexp(mul(w,complex(log(-z.x), z.y/z.x)));
+            }
+        }
+
+        
+        //Special case, for efficiency
+        complex cpow(float r, complex z) {
+            //Computes r^z = r^(c+di) = r^z r^di = r^z e^log(r)di
+            return pow(r,z.x) *cexp(complex(0,z.y*log(r)));
+        }
+
+
+        complex csqrt(complex z) {
+            return cpow(z, complex(0.5, 0));
+        }
+
+        complex csin(complex z) {
+            return complex(sin(z.x), z.y* cos(z.x));
+        }
+
+        complex ccos(complex z) {
+            // Computes 0.5*(e^-iz + e^iz)
+            return csin(z+cpi/2.0);
+        }
+
+        complex ctan(complex z) {
+            return div(csin(z), ccos(z));
+        }
+
+
+        complex acsin(complex z) {
+            //From taylor series
+            return complex(asin(z.x), z.y/sqrt(1.0-z.x*z.x));
+        }
+
+        complex accos(complex z) {
+            return cpi/2.0 - acsin(z);
+        }
+
+        complex actan(complex z) {
+            //From taylor series 
+            return complex(atan(z.x), -z.y/(z.x*z.x+1.0));
+        }
+
+        complex csinh(complex z) {
+            return 0.5*(cexp(z) - cexp(-z));
+        }
+
+        complex ccosh(complex z) {
+            return 0.5*(cexp(z) + cexp(-z));
+        }
+
+        complex ctanh(complex z) {
+            return div(csinh(z), ccosh(z));
+        }
+
+        float asinh(float x) {
+        	return log(x + sqrt(1.0 + x*x));
+        }
+
+        complex acsinh(complex z) {
+            //From taylor series
+            return complex(asinh(z.x), z.y/sqrt(1.0+z.x*z.x));
+        }
+
+        complex accosh(complex z) {
+            return clog(z + cpow(mul(z,z) - one,complex(0.5, 0.0)));
+        }
+
+        complex actanh(complex z) {
+            //From taylor series
+            return 0.5* clog(div(one+z, one-z)); 
+            //return complex(atanh(z.x), -z.y/(z.x*z.x-1.0));
+        }
+
+
+
+        complex csec(complex z){
+            return div(z,ccos(z));
+        }
+
+        complex ccsc(complex z){
+            return div(z,csin(z));
+        }
+
+        complex ccot(complex z){
+            return div(ccos(z),csin(z));
+        }
+
+        complex acsec(complex z){
+            return accos(div(one,z));
+        }
+
+        complex accsc(complex z){
+            return acsin(div(one,z));
+        }
+
+        complex accot(complex z){
+            return actan(div(one,z));
+        }
+
+
+        //Hyperbolic trig
+
+        complex csech(complex z){
+            return div(one,ccosh(z));
+        }
+
+        complex ccsch(complex z){
+            return div(one,csinh(z));
+        }
+
+        complex ccoth(complex z){
+            return div(ccosh(z),csinh(z));
+        }
+
+        complex acsech(complex z){
+            return accosh(div(one,z));
+        }
+
+        complex accsch(complex z){
+            return acsinh(div(one,z));
+        }
+
+        complex accoth(complex z){
+            return actanh(div(one,z));
+        }
+
+
+
+
+        complex mandelbrot(complex z) {
+            complex zp = complex(0.0);
+            for(int n = 0; n < 8; n++) {
+                zp  = mul(zp, zp) + z;
+            }
+            return zp;
+        }
+        
+
+        complex gamma(complex z) {
+            //https://en.wikipedia.org/wiki/Lanczos_approximation
+
+            const int plength = 8;
+            float p[plength];
+            p[0] = 676.5203681218851;
+            p[1] = -1259.1392167224028;  
+            p[2] = 771.32342877765313;
+            p[3] = -176.61502916214059;
+            p[4] = 12.507343278686905;
+            p[5] = -0.13857109526572012;
+            p[6] = 9.9843695780195716e-6;
+            p[7] = 1.5056327351493116e-7;
+
+            complex ref;
+            bool inv = false;
+
+            if(z.x < 0.5){
+                ref = div(cpi, csin(pi*z));
+                z = one-z;
+                inv = true;
+            } 
+            z = z-one;
+            complex x = one;
+            for(int n = 0; n < plength; n++){
+                x += div(complex(p[n],0.0), z + complex(n+1,0));
+            }
+            complex t = z + complex(plength,0) - complex(0.5,0.0);
+
+            if(inv) {
+                return div(ref, sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x));
+            } else {
+                return sqrt(2.0*pi) * mul(mul(cpow(t, z+complex(0.5,0.0)), cexp(-t)), x);
+            }
+        }
+
+  
+        complex factorial(complex z) {
+            return gamma(one + z);
+        }
+   
+        
+        complex sgn(complex z) {
+            //return z/length(z);
+            return z/length(z);
+        }
+
+        complex step(complex z) {
+            return 0.5*(one + sgn(z));
+        }
+
+        complex erf(complex z){
+            //https://en.wikipedia.org/wiki/Error_function#Numerical_approximations
+            float a = 0.147;//8.0*(pi-3.0)/(3.0*pi*(4.0-pi));
+            return mul(one, csqrt(one - cexp(mul(-mul(z,z),div(complex(0,4.0/pi) + a*mul(z,z), one+a*mul(z,z))))));
+        }
+
+        complex lt(complex z, complex h) {
+            if(z.x < h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        complex gt(complex z, complex h) {
+            if(z.x > h.x) {
+                return z;
+            } else {
+                return zero;
+            }
+        }
+
+        vec4 hsv_to_rgb(float H, float S, float V) {
+            vec4 color;
+
+            float Hp = degrees(mod(H,2.0*pi))/60.0;
+            float C = V*S;
+
+            float X = C * (1.0 - abs(mod(Hp, 2.0) -1.0));
+
+            int val = int(Hp);
+
+
+                if(val == 0)
+                    color = vec4(C, X, 0.0, 1.0);
+
+                if(val == 1)
+                    color = vec4(X, C, 0.0, 1.0);
+
+                if(val == 2)
+                    color = vec4(0.0, C, X, 1.0);
+
+                if(val == 3)
+                    color = vec4(0.0, X, C, 1.0);
+
+                if(val == 4)
+                    color = vec4(X, 0.0, C, 1.0);
+
+                if(val == 5 || val == 6)
+                    color = vec4(C, 0.0, X, 1.0);
+
+            float m = V - C;
+            color.x += m;
+            color.y += m;
+            color.z += m;
+
+            return color;
+        }
+        /*
+        complex testfn(complex z) {
+            if(z.x > 10.0) return complex(1./0., 1./0.);
+            return z;
+        }
+        */
+
+        bool in_circle(vec2 center, float r, complex z){
+            return length(z-center) < r;
+        }
+
+        bool in_annulus(vec2 center, float r1, float r2, complex z){
+            return length(z-center) > r1 && length(z-center) < r2;
+        }
+
+        bool isnan(float val)
+        {
+          return (val <= 0.0 || 0.0 <= val) ? false : true;
+        }
+
+        vec4 get_color(complex z) {
+
+            //if(isnan(z.x)) return vec4(1.,0.,0.,1.);
+            //if(isnan(z.y)) return vec4(0.,1.,0.,1.);
+
+            vec4 texcolor = vec4(0.0,0.0,0.0,0.0);
+            //color = texture2D(sam, (z+complex(1.0,1.0))/2.0);//(z+complex(1.0,1.0))/2.0 );
+            
+            //if(z.x <= 1.0 && z.x >=-1.0 && z.y <= 1.0 && z.y >= -1.0) {
+                //TODO: add scale so not all images are the same size and works from np2 images
+                vec2 uv = vec2(mod((texscale.x*z.x+1.0)/2.0, 1.0), mod((texscale.y*z.y+1.0)/2.0, 1.0));
+                texcolor = texture2D(sam, uv );
+                                       //texcolor = texture2D(sam, (z+complex(1.0,1.0))/2.0 )
+            //} 
+
+            vec4 bgcolor;
+            if (texcolor.w != 1.0) {
+                // Domain coloring! --right now just white
+                float r = length(z);
+                //r = 1.0;
+                //float angle = arg(z);
+
+                if(dcoloring){
+                    //float degrade = r+0.5;//1.0;//exp(r+e); //r+0.5;
+                    //float vf = $valfun$;
+                    bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                    //if(isnan(vf)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                    //if(isinf(z.x)) bgcolor = vec4(0.0,1.0,0.0,1.0);
+                }
+
+                float size = 1.0/16.0;
+                float freq = 0.2;
+
+                {
+                    /*
+                    if(mod(z.x, freq) < size && mod(z.y, freq) < size) {
+                        bgcolor = vec4(0.0,0.0,0.0,1.0);
+                    }
+                    */
+                    if(checkerboard){
+                        if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                } 
+                //20.5
+                //54.6
+                if(r > 20.1)  {
+                    if(infstripes){
+                        if (mod(r*log(r), (r)) < (r)/2.0) {
+                            bgcolor = vec4(0.1,0.1,0.1,1.0);
+                        }
+
+                        if (mod(r*log(r), (r)) > (r)/2.0) {
+                            bgcolor = vec4(0.2,0.2,0.2,1.0);
+                        }
+                    }
+                }
+                /*
+                if(mod(z.x+size/2.0, freq) < size && mod(z.y+size/2.0, freq) < size) {
+                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                }*/
+
+                if(unitcircle){
+                    if(!( in_circle(vec2(1,0),size, z) || 
+                          in_circle(vec2(0,1),size, z) || 
+                          in_circle(vec2(-1,0),size, z) ||
+                          in_circle(vec2(0,-1),size, z) )) {
+
+                        if (r <= 1.0 && r > 1.0-size) {
+                            bgcolor = vec4(0.4,0.4,0.4,1.0);
+                        }
+
+                        if (r >= 1.0 && r < 1.0 + size) {
+                            bgcolor = vec4(0.75,0.75,0.75,1.0);
+                        }
+                    } else if(!dcoloring){
+                        if(r <= 1.0 && r > 1.0-size || r >= 1.0 && r < 1.0 + size) {
+                            float r = length(z);
+                            bgcolor = hsv_to_rgb($huefun$, $satfun$, $valfun$);
+                            if(checkerboard){
+                                if (mod(floor(z.x/size),2.0) != mod(floor(z.y/size),2.0)) {
+                                    bgcolor = vec4(0.0,0.0,0.0,1.0);
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                if(originindicator) {
+                    if (r < size) {
+                        bgcolor = vec4(1.,1.,1.,1.);
+                        //bgcolor.w = 1.0;
+                        if (mod(floor(z.x/size),2.0) == mod(floor(z.y/size),2.0)) {
+                            bgcolor = vec4(0.0,0.0,0.0,1.0);
+                        }
+                    }
+                }
+
+                texcolor = bgcolor;
+            }
+
+
+            //vec4 finalcolor = texcolor*texcolor.w + bgcolor*(1.0-texcolor.w);
+            //finalcolor.w = 1.0;
+            if(isnan(texcolor.x) || isinf(texcolor.x)) return vec4(0,0,0,1);
+            if(isnan(texcolor.y) || isinf(texcolor.y)) return vec4(0,0,0,1);
+            if(isnan(texcolor.z) || isinf(texcolor.z)) return vec4(0,0,0,1);
+            return texcolor;
+            
+        }
+
+
+        float rand(vec2 co){
+            return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+        }
+
+        complex crand(complex z) {
+            return 2.0*vec2(rand(z), rand(z+rand(z)))-vec2(1,1);
+        }
+
+        #define aasamples ($aasamples$)
+       // #define astep ($astep$)
+
+        float to_step(int cur) {
+        	if(aasamples == 1) {
+                return 0.0;
+            } else {
+        	   return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(aasamples-1);
+            }
+        	
+            /*
+        	if(mod(float(arange),2.0) == 0){
+        		return -(1.0/512.0)+(2.0/512.0)*float(cur)/float(arange-1)
+        	} else {
+        		return (1.0/512.0)*float(cur-arange/2)/float(arange);
+        	}*/
+
+
+        	//return (1.0/512.0)* (float(cur)-0.5*float(arange))/float(arange);
+            //return 1.0*float(cur)/(512.0*float(arange));
+        }
+
+        vec2 to_step2(int c1, int c2) {
+            vec2 res = vec2(to_step(c1), to_step(c2));
+            return res * zoom;//+ (0.5/512.0)*rand(zin-res) ;//* rand(zin);
+        }
+
+        const float   fepsilon = 0.001; //0.000001 errors
+        const complex cepsilon = complex(fepsilon, 0.);
+        const float   iteramt = 100.0;
+
+        complex inttest(complex zin){
+        	complex total = zero;
+        	complex z = zero;
+
+        	for(float _iter_ =0.0; _iter_ < iteramt; _iter_+=1.0){
+        		z += (zin-zero)*(1.0/iteramt);
+
+        		total += mul(cexp(z),((zin)/iteramt)); //this would be replaced by the actual function of z
+        	}
+        	return total;
+        }
+
+		/*
+		User defined uniforms and functions
+        */
+        $uniforms$
+
+        $functions$
+
+        complex trans(complex z, complex w, complex t) {
+            float st = max(min((t.x+1.0)/2.0,1.0),0.0);
+            return st*w + (1.0-st)*z;
+        }
+
+        void main() {
+            vec4 color = vec4(0.0);
+
+            
+            if(renderImage) {
+	            if(invert) {
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex zf = zin + to_step2(_x_,_y_); 
+
+	                        complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+	                        z = crand(z);//$parsed$;
+	                        //z = zf;
+	                        complex zprev = z;
+
+
+	                        //zf = zero;
+	                        //z = zin;
+
+	                        //z = zin;
+	                        bool retried = false;
+
+	                        if( !(isnan(z.x) || isinf(z.x))){
+	                            for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+	                                complex dif;
+	                                for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+	                                    complex df = -(($parsed$) -zf);
+	                                    z += cepsilon;
+	                                    df += ($parsed$) -zf;
+	                                    df /= fepsilon;
+	                                    z -=cepsilon;
+
+	                                    //df = div(one, mul(one-z, one-z));
+	                                    //if(z == zero) break;
+	                                    //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+	                                    complex fz = (($parsed$) - zf);
+	                                    //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+	                                    //if(fz == zero) break;
+	                                    dif = div(fz,df);
+	                                    z = z - dif;
+	                                }
+	                                //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+	                                if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+	                                //retried = true;
+	                                z = crand(zprev);
+	                                zprev = z; 
+	                            }
+	                        }
+
+	                        color += get_color( z )/float(aasamples*aasamples);
+	                    }
+	                }
+	            } else { 
+	                for(int _x_ = 0; _x_ < aasamples; _x_++) {
+	                    for(int _y_ = 0; _y_ < aasamples; _y_++) {
+	                        complex z = zin + to_step2(_x_,_y_); 
+	                        color += get_color( $parsed$ )/float(aasamples*aasamples);
+	                    }
+	                }
+	            
+	            }
+	            color.w = 1.0;
+        	} else {
+        		if(invert) {
+                    complex zf = zin; 
+
+                    complex z = zf;// + vec2(rand(zin), rand(zin+rand(zin)))/10.0;
+                    z = crand(z);//$parsed$;
+                    //z = zf;
+                    complex zprev = z;
+
+
+                    //zf = zero;
+                    //z = zin;
+
+                    //z = zin;
+                    bool retried = false;
+
+                    if( !(isnan(z.x) || isinf(z.x))){
+                        for(int _t_ = 0; _t_ < $invtries$; _t_++) {
+                            complex dif;
+                            for(int _n_ = 0; _n_ < $inviters$; _n_++) {
+
+                                complex df = -(($parsed$) -zf);
+                                z += cepsilon;
+                                df += ($parsed$) -zf;
+                                df /= fepsilon;
+                                z -=cepsilon;
+
+                                //df = div(one, mul(one-z, one-z));
+                                //if(z == zero) break;
+                                //if (abs(df.x) < 0.001 || abs(df.y) < 0.001) break;
+                                complex fz = (($parsed$) - zf);
+                                //if (abs(fz.x) < 0.001 || abs(fz.y) < 0.001) break;
+                                //if(fz == zero) break;
+                                dif = div(fz,df);
+                                z = z - dif;
+                            }
+                            //if( !(isnan(z.x) || isinf(z.x)) || _t_ == $invtries$-1) break;
+                            if( length(dif) < 0.1 || _t_ == $invtries$-1) break;
+                            //retried = true;
+                            z = crand(zprev);
+                            zprev = z; 
+                        }
+                    }
+
+                    color = vec4(zin, z);
+
+	            } else { 
+
+	                complex z = zin; 
+	                color = vec4(zin, $parsed$);
+	            }
+        	}
+                                
+            gl_FragColor = color;
+        }
+    </script>
+
+
+    </head>
+    <style>
+
+    body {
+     margin: 0;
+     background-color: white;
+     font-family: "Lato", sans-serif;
+   }
+   canvas {
+     display: block;  /* prevents scrollbar */
+
+   }
+
+    .sidenav {
+        height: 100%;
+        width: 0;
+        position: fixed;
+        z-index: 1;
+        top: 0;
+        background-color: rgba(0, 0, 0, 0.8);
+        overflow-x: hidden;
+        transition: 0.5s;
+        padding-top: 30px;
+                user-select: none;
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -o-user-select: none;
+    }
+
+    .sidenav a {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #818181;
+        display: block;
+    }
+
+    .sidenav a:hover, .offcanvas a:focus{
+        color: #FFFFFF;
+    }
+
+    .sidenav aa {
+    	text-decoration: none;
+        font-size: 20px;
+        color: #818181;
+        display: inline-block;
+    }
+
+    .sidenav aa:hover, .offcanvas aa:focus{
+        color: #FFFFFF;
+    }
+
+    .sidenav t {
+        padding: 8px 8px 8px 32px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #818181;
+        display: block;
+    }
+
+    .button {
+        padding: 5px 5px 0px 5px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #818181;
+        display: block;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .button:hover {
+        padding: 5px 5px 0px 5px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #FFFFFF;
+        display: block;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+
+    .menubutton {
+        padding: 5px 5px 5px 5px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #818181;
+        display: inline-block;
+        background-color: #181818;
+    }
+
+    .menubutton:hover {
+        padding: 5px 5px 5px 5px;
+        text-decoration: none;
+        font-size: 20px;
+        color: #FFFFFF;
+        display: inline-block;
+        background-color: #181818;
+    }
+
+    .bottombar {
+        position: absolute;
+        left:0px;
+        right:0px;
+        bottom:0px;
+        height:180px;
+        user-select: none;
+        -moz-user-select: none;
+        -khtml-user-select: none;
+        -webkit-user-select: none;
+        -o-user-select: none;
+    }
+
+    .hidden {
+        display: block;
+    }
+
+
+
+    .sidenav .closebtn {
+        position: absolute;
+        top: 0;
+        right: 25px;
+        font-size: 36px;
+        margin-left: 50px;
+    }
+
+    @media screen and (max-height: 450px) {
+      .sidenav {padding-top: 15px;}
+      .sidenav a {font-size: 18px;}
+    }
+
+	</style>
+
+
+    <body  onload="main()">
+      <input id="image"  type="file" style="display:none;"></input>
+        <div id="everything">
+            <canvas id="webgl" width="512" height="512">
+                Please use a browser that supports "canvas"
+
+            </canvas>
+
+            <div id="menu" class="sidenav" style="right:0;">
+                <a href="javascript:void(0)" class="closebtn" onclick="closeMenu()">&times;</a>
+                <center>
+                <span id="functionbutton" class="menubutton" onclick="showMenuFunction()">Function</span>
+                <span id="settingsbutton" class="menubutton" onclick="showMenuSettings()">Settings</span>
+                </center>
+                <div id="function">
+                    <!-- f<sup>-</sup>¹(z) -->
+                    <t>Enter a complex function: f(z)=</t>
+                    <center>
+                    <input style="height:30px;width:90%;font-size:14pt;" type="text" id="parserInput" onchange="parseInput()" value="z" cols="50">
+                    <t>
+                    <button onclick="resetPosition()">Reset position</button> <button onclick="resetZoom()">Reset zoom</button> 
+                    </t>
+                    <t>
+                    <button id="changeRenderButton" onclick="changeRender()">3D view</button> 
+                    <aa id="tinvert"><input type="checkbox" id="invert">Invert </aa>
+                    </t>
+                    </center>
+                    <t>
+                        <p id="tslider"></p>
+                        <p id="parserOutput"></p>
+                    </t>
+                </div>
+                <div id="settings" style="display: none;">
+                
+                <t>Anti-Aliasing level  <input type="text" id="aaLevel" onchange="setAA()" value="1" style="width:20px"></t>
+                <a id="tdcoloring"><input type="checkbox" id="dcoloring">HSV Coloring </a>
+                <t>H = <input type="text" id="huefun" onchange="parseInput()" style="width:150px" value="-arg(z) + pi"></t>
+                <t>S = <input type="text" id="satfun" onchange="parseInput()" style="width:150px" value="1.0"></t>
+                <t>V = <input type="text" id="valfun" onchange="parseInput()" style="width:150px" value="1.0/log(r+e)"></t>
+                
+                <a id="tcheckerboard"><input type="checkbox" id="checkerboard">Checkerboard </a>
+                <a id="toriginindicator"><input type="checkbox" id="originindicator">Origin indicator </a>
+                <a id="tunitcircle"><input type="checkbox" id="unitcircle">Unit circle </a>
+                <a id="tinfstripes"><input type="checkbox" id="infstripes">Stripes towards infinity </a>
+                
+                <t>Inversion iterations <input type="text" id="inviters" onchange="parseInput()" value="10" style="width:30px"></t>
+                <t>Inversion attempts <input type="text" id="invtries" onchange="parseInput()" value="5" style="width:30px"></t>
+                <a id="tredrawmove"><input type="checkbox" id="redrawmove">Redraw on move (no delay)</a>
+                <a id="tredrawzoom"><input type="checkbox" id="redrawzoom">Redraw on zoom (no delay)</a>
+                <a id="tmakemesh"><input type="checkbox" id="makemesh">In 3D, make a mesh if possible (point cloud otherwise)</a>
+                <a id="tinvert3d"><input type="checkbox" id="invert3d">In 3D invert by swapping input and output (i.e. plot (f(z),z) instead of (z,f(z)))</a>
+                <a id="tlimitdomain3d"><input type="checkbox" id="limitdomain3d">Limit the domain of the inverse to that of the original function when using the above setting</a>
+
+                <t>
+                	i²=<select id="numbertype" onchange="parseInput()">
+						  <option value="complex">-1</option>
+						  <option value="hyperbolic">1</option>
+						  <option value="dual">0</option>
+						</select>
+                </t>
+                <t></t>
+                <t></t>
+                </div>
+            </div>
+
+            <div id="info" class="sidenav" style = "left:0;">
+                <a href="javascript:void(0)" class="closebtn" onclick="closeInfo()">&times;</a>
+                <t>
+                    The variable z provides the x and y coordinates of each pixel in the form x + iy. <br>
+                    Any other variables will become toggleable uniforms which you can use to manipulate the program. <br><br>
+
+                    The x and y axes of each window ranges from -1 to 1. When a user enters a function, each point (x,y) on the right screen is colored by where they land under f(x+iy) on the left screen. In areas not covered by the SOR, a background image helps to visualize where on the complex plane each of the input points landed. Note: the look of this background image is heavily inspired by David Bau's complex function viewer, though I didn't take any of his code when making it. This is essentially meant to be a faster and more customizeable version of his website.<br><br>
+
+                    If you want points to be colored based on where they originated, rather than where they ended up, enable "invert" in settings. This is fairly expensive, so consider turning down AA or making the window smaller if you experience problems.<br><br>
+
+                    To generate the parser for user input I used peg.js. The generated parser file is included, along with the grammar file that I wrote and used to generate the parser.<br>
+
+
+                    <br>
+                    Constants: <br>
+                    e <br>
+                    pi or π <br>
+                    i <br>
+
+                    Note: below u and v are used to represent any expression <br>
+                    Operators and functions: <br>
+                    <br>
+                    Grouping (u) <br>
+                    Magniute |u| or ‖u‖<br>
+                    Conjuagte u* <br>
+                    Basic arithmetic: u+v,u-v,u*v or u⋅v,u/v or u÷v <br>
+                    To multiply you can also simply write variables next to each other i.e. uv or 2uv or 2 u v or ipiuv or i pi u v are all valid and will behave the same as if * were used. Take note that 2(u) will work fine but v(u) is a function, not multiplication (also note that (v)u or (v)(u) will work just fine). <br>
+                    Exponentiation and logarithms: u^v, ln(u), log(u), log(u,b)  <i>(The b argument in log can be used to specify a base, default e)</i> <br>
+                    Factorial: u! (really gamma(u+1))<br>
+                    <br>
+                    Trig functions: sin(u), cos(u), tan(u)<br>
+                    Inverse trig functions: asin(u), acos(u), atan(u)<br>
+                    Hyperbolic trig functions: sinh(u), cosh(u), tanh(u) <br><br>
+
+                    Angle: arg(u)<br>
+                    Get real/imaginary components: re(u), im(u)<br>
+                    Sign: sgn(u) <br>
+                    Step: step(u) <br>
+
+
+                    Square root: sqrt(z) or √(z) (or just use exponentiation)<br>
+                    Gamma function: gamma(u) or Γ(u) <br>
+                    Zeta function: zeta(u) or ζ(z)<br>
+                    <br>
+
+                    Iterated function {var=update, var=initial, iterations}  (Think of var=update as the body of a for loop, e.g. {z' = z' +1, z' = 0, 5} would intiialize z' to 0, then add one to it in each of 5 iterations). Default value of var is z', you don't need to specifiy "z'=" if you plan on using z' (so {z' +1, 0, 5} also works), but if you want to use a different variable like "y" you would have to specifiy it ({y = y +1, y = 0, 5}). Iterations must be an integer<br><br>
+                    Derivative w.r.t z (u)' (You can nest derivatives as deeply as you want, but due to the limitations of floating point arithmetic results degrade fairly quickly) Note the parentheses, z' in an iterated function is not the derivative of z.<br><br>
+                    Integral w.r.t z $(u) or $[lower](u) or $[lower, upper](u). When the lower and upper bound parameters are omitted, defaults of 0 and z respectively are used. Integrates along a line from lower to upper bound. You can also use $[lower, upper, variable](u) to specify the variable to integrate with respect to, default z. Use $[lower,upper,variable,iter](u) to specify the number of steps to take when integrating. You can use ∫ in place of $.<br><br>
+
+                    Sum over n from 1 to |count|: Sum(u,count) or ∑(u,count) e.g. sum(1/n^z,100n).
+                    <br><br>
+
+
+
+                </t>
+            </div>
+
+            <div class="bottombar" id="bbar">
+                <div class="hidden" id="tohide">
+                    <div style="position: fixed; bottom: 5px; right: 15px;text-align: right;">
+                        <span style="font-size:30px;cursor:pointer; display:inline-block;margin-bottom:5px;" class="button" onclick="openMenu()">    <i class="material-icons" style="font-size: 48px;">menu</i>
+                        </span>
+                        <span style="font-size:30px;cursor:pointer; display:block" class="button" onclick="fullscreen()">
+                            <i class="material-icons" style="font-size: 48px;" id="fullscreenIcon">fullscreen</i>
+                        </span>
+                    </div>
+
+                    <div style="position: fixed; bottom: 5px; left: 15px;text-align: left;">
+                        <span style="font-size:30px;cursor:pointer; display:inline-block;margin-bottom:5px;" class="button" onclick="openInfo()">
+                            <i class="material-icons" style="font-size: 48px;">help</i>
+                        </span>
+                        <span style="font-size:30px;cursor:pointer; display:block" class="button" onclick="$('image').click();">
+                            <i class="material-icons" style="font-size: 48px;">photo</i>
+                        </span>
+                    </div>
+
+                    <div style="position: fixed; bottom: 5px; margin-left:50%;">
+                        <span style="font-size:30px;cursor:pointer;margin-left:-50%; display:inline-block" class="button" onclick="saveImage()">
+                            <i class="material-icons" style="font-size: 48px;">file_download</i>
+                        </span>
+                    </div>
+      
+
+                </div>
+            </div>
+
+        </div>
+
+
+<script>
+
+//var mobile = window.mobilecheck
+
+var bbar = document.getElementById("bbar");
+var tohide = document.getElementById("tohide");
+var canvas = document.getElementById("webgl");
+
+var firstmouseover = true;
+
+bbar.addEventListener('mouseover', function(){
+    firstmouseover = false;
+    tohide.style.display ="block";
+});
+//bbar.addEventListener('mouseout', function(){tohide.style.display ="none";});
+canvas.addEventListener('mouseover', function(){
+    if(!firstmouseover) tohide.style.display ="none";
+});
+
+tohide.style.display="block";
+//bbar.onmouseover = function(){bbar.style="display:block;"};
+
+document.documentElement.addEventListener('touchstart', function (event) {
+  if (event.touches.length > 1) {
+    event.preventDefault();
+  }
+}, false);
+
+var lastTouchEnd = 0;
+document.documentElement.addEventListener('touchend', function (event) {
+  var now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+
+
+function loadImage(ev){
+  var fr = new FileReader();
+  console.log(ev.target.files[0]);
+  fr.onload = function() {
+  var image = new Image();
+  image.onload = function(){loadTexture(gl, sor_tfb.tex, image);redrawScene();};
+  image.src = fr.result;
+  //console.log(fr);
+  //console.log(image);
+  
+  }
+  fr.readAsDataURL(ev.target.files[0]);
+
+}
+
+/*
+function processHash(){
+    $('parserInput').value = window.location.hash.substring(1);
+    console.log(window.location.hash.substring(1));
+}
+
+//window.location.hash = "#lol";
+
+if(window.location.hash == '') {
+    console.log("EMPTY")
+} else {
+    console.log("NOT EMPTY")
+    processHash();
+    //$('parserInput').value = getHash();
+}
+*/
+//console.log(window.location.hash);
+
+$('image').addEventListener('change', loadImage, false);
+
+$('dcoloring').checked = dcoloring;
+$('checkerboard').checked = checkerboard;
+$('originindicator').checked = originindicator;
+$('unitcircle').checked = unitcircle;
+$('infstripes').checked = infstripes;
+$('makemesh').checked = false;
+$('invert').checked = false;
+$('invert3d').checked = false;
+$('redrawzoom').checked = false;
+$('redrawmove').checked = false;
+$('limitdomain3d').checked = true;
+
+//$('dcoloring').onclick = function(){dcoloring = $('dcoloring').checked = dcoloring; redrawScene();};
+$('tdcoloring').onclick = function(){dcoloring = !dcoloring; $('dcoloring').checked = dcoloring; redrawScene();};
+$('tcheckerboard').onclick = function(){checkerboard = !checkerboard; $('checkerboard').checked = checkerboard; redrawScene();};
+$('toriginindicator').onclick = function(){originindicator = !originindicator; $('originindicator').checked = originindicator; redrawScene();};
+$('tunitcircle').onclick = function(){unitcircle = !unitcircle; $('unitcircle').checked = unitcircle; redrawScene();};
+$('tinfstripes').onclick = function(){infstripes = !infstripes; $('infstripes').checked = infstripes; redrawScene();};
+$('tmakemesh').onclick = function(){makemesh = !makemesh; $('makemesh').checked = makemesh;
+                                                                if(!render2D) {
+                                                                        cleanup3D();
+                                                                        setup3D();
+                                                                }
+
+                                                                redrawScene();
+                                                        };
+
+$('tinvert').onclick = function(){invert = !invert; $('invert').checked = invert;
+								if(!render2D) {
+									cleanup3D();
+									setup3D();
+								}
+
+								redrawScene();
+							};
+
+$('tinvert3d').onclick = function(){
+										invert3D = !invert3D;
+										$('invert3d').checked = invert3D;
+										if(!render2D) {
+											cleanup3D();
+											setup3D();
+											redrawScene();
+										}
+									}; 
+
+$('tredrawzoom').onclick = function(){redrawzoom = !redrawzoom; $('redrawzoom').checked = redrawzoom; redrawScene();};
+$('tredrawmove').onclick = function(){redrawmove = !redrawmove; $('redrawmove').checked = redrawmove; redrawScene();};
+$('tlimitdomain3d').onclick = function(){
+                            limitdomain3D = !limitdomain3D; 
+                            $('limitdomain3d').checked = limitdomain3D; 
+                            if(!render2D && invert3D && invert){
+                               cleanup3D();
+                               setup3D();
+                               redrawScene();
+                            }
+                            };
+
+
+function openMenu() {
+    var scale = 420;
+    scale = Math.min(scale, window.innerWidth);
+    document.getElementById("menu").style.width = scale+"px";
+}
+
+function closeMenu() {
+    document.getElementById("menu").style.width = "0";
+}
+
+$('functionbutton').style.color='#FFFFFF';
+function showMenuFunction() {
+    $('function').style.display='block';
+    $('functionbutton').style.color='#FFFFFF';
+    $('settings').style.display='none';
+    $('settingsbutton').style.color='#818181';
+}
+
+function showMenuSettings() {
+    $('function').style.display='none';
+    $('functionbutton').style.color='#818181';
+    $('settings').style.display='block';
+    $('settingsbutton').style.color='#FFFFFF';
+}
+
+function openInfo() {
+    var scale = 420;
+    scale = Math.min(scale, window.innerWidth);
+    document.getElementById("info").style.width = scale+"px";    
+}
+
+function closeInfo() {
+    document.getElementById("info").style.width = "0";
+}
+
+
+</script>
+
+        <script src="../lib/webgl-utils.js"></script>
+        <script src="../lib/webgl-debug.js"></script>
+        <script src="../lib/cuon-utils.js"></script>
+        <script src="../lib/cuon-matrix.js"></script>
+        <script src="../lib/ioSOR.js"></script>
+        <script src="../lib/numeric-1.2.6.min.js"></script>
+        <script src="parser.js"></script>
+        <script src="model.js"></script>
+        <script src="camera.js"></script>
+        <script src="helper.js"></script>
+        <script src="driver.js"></script>
+        
+    </body>
+    
+
+</html>

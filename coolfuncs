@@ -1,0 +1,10 @@
+z/{z' - (z' e^z' - z)/(e^z' (z'+1)),rand(z), 100} //z/W(z), this might be the inverse of z log z but maybe not. havent looked far into it. didn't really look the same
+hadmard gamma function: 1/gamma(1-z) log(gamma(0.5-0.5z)/gamma(1-0.5z))'
+
+z^^inf = W(-ln(z))/-ln(z) = {z' - (z' e^z' - log(z))/(e^z' (z'+1)),rand(z), 100}/-log(z)
+
+z |z|^t //imaginary component makes a neat spiral
+z^n |z|^t //various values of n, tried 2, neat
+
+
+{z'+1/z'*^2,z,100}

@@ -1,0 +1,674 @@
+complex binomial(complex n, complex k) {
+            return div(factorial(n), mul(factorial(n-k),factorial(k)));
+        }
+
+
+        float d20(float n) {
+            return 1.02268/(1.0+0.000003 * exp(0.867237*n))-0.017144; 
+        }
+
+        float d70(float n){
+
+            
+           if(n < 27.0) {
+               return 1.0;
+           } else { 
+                //y = -0.09699716 + (0.9818753 - -0.09699716)/(1 + (x/0.2604921)^4.245834) //r2 0.999
+                //n = n/27.0;
+
+                return 1.00622/(1.0 + 4.2364e-11 * exp(0.477878*n));
+                return -0.01026294 + (1.005786 - -0.01026294)/(1.0+ pow(pow(n/0.9574826,8.804597),2.22099));
+                //return -0.04648318 + (0.9967216 - -0.04648318)/(1.0 + pow(n/0.8590162,10.26419));
+                //return -0.09699716 + (0.9818753 - -0.09699716)/(1.0 + pow(n/0.2604921,4.245834));
+               //return -0.02594087 + (1.003729 - -0.02594087)/(1.0 + pow(n/50.09641,22.79802)); 
+           }
+        }
+
+
+        complex zeta(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= 0.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 1.0 *cpow( 10.0 ,-z);
+            total += 1.0 *cpow( 11.0 ,-z);
+            total -= 1.0 *cpow( 12.0 ,-z);
+            total += 1.0 *cpow( 13.0 ,-z);
+            total -= 1.0 *cpow( 14.0 ,-z);
+            total += 1.0 *cpow( 15.0 ,-z);
+            total -= 1.0 *cpow( 16.0 ,-z);
+            total += 1.0 *cpow( 17.0 ,-z);
+            total -= 1.0 *cpow( 18.0 ,-z);
+            total += 1.0 *cpow( 19.0 ,-z);
+            total -= 1.0 *cpow( 20.0 ,-z);
+            total += 1.0 *cpow( 21.0 ,-z);
+            total -= 1.0 *cpow( 22.0 ,-z);
+            total += 1.0 *cpow( 23.0 ,-z);
+            total -= 1.0 *cpow( 24.0 ,-z);
+            total += 1.0 *cpow( 25.0 ,-z);
+            total -= 1.0 *cpow( 26.0 ,-z);
+            total += 1.0 *cpow( 27.0 ,-z);
+            total -= 1.0 *cpow( 28.0 ,-z);
+            total += 1.0 *cpow( 29.0 ,-z);
+            total -= 1.0 *cpow( 30.0 ,-z);
+            total += 1.0 *cpow( 31.0 ,-z);
+            total -= 1.0 *cpow( 32.0 ,-z);
+            total += 1.0 *cpow( 33.0 ,-z);
+            total -= 1.0 *cpow( 34.0 ,-z);
+            total += 1.0 *cpow( 35.0 ,-z);
+            total -= 1.0 *cpow( 36.0 ,-z);
+            total += 1.0 *cpow( 37.0 ,-z);
+            total -= 1.0 *cpow( 38.0 ,-z);
+            total += 1.0 *cpow( 39.0 ,-z);
+            total -= 1.0 *cpow( 40.0 ,-z);
+            total += 0.999999999999 *cpow( 41.0 ,-z);
+            total -= 0.999999999993 *cpow( 42.0 ,-z);
+            total += 0.999999999967 *cpow( 43.0 ,-z);
+            total -= 0.999999999849 *cpow( 44.0 ,-z);
+            total += 0.999999999345 *cpow( 45.0 ,-z);
+            total -= 0.999999997316 *cpow( 46.0 ,-z);
+            total += 0.999999989584 *cpow( 47.0 ,-z);
+            total -= 0.999999961694 *cpow( 48.0 ,-z);
+            total += 0.999999866391 *cpow( 49.0 ,-z);
+            total -= 0.999999557763 *cpow( 50.0 ,-z);
+            total += 0.999998610183 *cpow( 51.0 ,-z);
+            total -= 0.999995850775 *cpow( 52.0 ,-z);
+            total += 0.999988226856 *cpow( 53.0 ,-z);
+            total -= 0.999968236159 *cpow( 54.0 ,-z);
+            total += 0.999918477384 *cpow( 55.0 ,-z);
+            total -= 0.999800882334 *cpow( 56.0 ,-z);
+            total += 0.999536974522 *cpow( 57.0 ,-z);
+            total -= 0.998974495648 *cpow( 58.0 ,-z);
+            total += 0.997835876492 *cpow( 59.0 ,-z);
+            total -= 0.995646719107 *cpow( 60.0 ,-z);
+            total += 0.991649207343 *cpow( 61.0 ,-z);
+            total -= 0.984716792959 *cpow( 62.0 ,-z);
+            total += 0.973300944566 *cpow( 63.0 ,-z);
+            total -= 0.955453081022 *cpow( 64.0 ,-z);
+            total += 0.928966746122 *cpow( 65.0 ,-z);
+            total -= 0.891667921733 *cpow( 66.0 ,-z);
+            total += 0.841841247931 *cpow( 67.0 ,-z);
+            total -= 0.778723360615 *cpow( 68.0 ,-z);
+            total += 0.702940642314 *cpow( 69.0 ,-z);
+            total -= 0.616744113469 *cpow( 70.0 ,-z);
+            total += 0.523921171101 *cpow( 71.0 ,-z);
+            total -= 0.429345802791 *cpow( 72.0 ,-z);
+            total += 0.338242607094 *cpow( 73.0 ,-z);
+            total -= 0.255341711397 *cpow( 74.0 ,-z);
+            total += 0.184146623366 *cpow( 75.0 ,-z);
+            total -= 0.12650249303 *cpow( 76.0 ,-z);
+            total += 0.0825511040061 *cpow( 77.0 ,-z);
+            total -= 0.0510341415687 *cpow( 78.0 ,-z);
+            total += 0.0298090705872 *cpow( 79.0 ,-z);
+            total -= 0.016406284493 *cpow( 80.0 ,-z);
+            total += 0.0084847321458 *cpow( 81.0 ,-z);
+            total -= 0.00411120427985 *cpow( 82.0 ,-z);
+            total += 0.00186063382781 *cpow( 83.0 ,-z);
+            total -= 0.000783909650972 *cpow( 84.0 ,-z);
+            total += 0.000306337806925 *cpow( 85.0 ,-z);
+            total -= 0.000110588205969 *cpow( 86.0 ,-z);
+            total += 3.67128975702e-05 *cpow( 87.0 ,-z);
+            total -= 1.11503033147e-05 *cpow( 88.0 ,-z);
+            total += 3.07982712827e-06 *cpow( 89.0 ,-z);
+            total -= 7.68268152009e-07 *cpow( 90.0 ,-z);
+            total += 1.71653488863e-07 *cpow( 91.0 ,-z);
+            total -= 3.40094041111e-08 *cpow( 92.0 ,-z);
+            total += 5.90175601307e-09 *cpow( 93.0 ,-z);
+            total -= 8.83058253287e-10 *cpow( 94.0 ,-z);
+            total += 1.1160977525e-10 *cpow( 95.0 ,-z);
+            total -= 1.15857119326e-11 *cpow( 96.0 ,-z);
+            total += 9.48336088955e-13 *cpow( 97.0 ,-z);
+            total -= 5.73898081536e-14 *cpow( 98.0 ,-z);
+            total += 2.28261276337e-15 *cpow( 99.0 ,-z);
+            total -= 4.47571130073e-17 *cpow( 100.0 ,-z);
+
+
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+
+
+        complex zetag(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 0.999999999999 *cpow( 10.0 ,-z);
+            total += 0.99999999998 *cpow( 11.0 ,-z);
+            total -= 0.999999999735 *cpow( 12.0 ,-z);
+            total += 0.999999997107 *cpow( 13.0 ,-z);
+            total -= 0.999999973564 *cpow( 14.0 ,-z);
+            total += 0.99999979531 *cpow( 15.0 ,-z);
+            total -= 0.999998644649 *cpow( 16.0 ,-z);
+            total += 0.999992264978 *cpow( 17.0 ,-z);
+            total -= 0.99996169714 *cpow( 18.0 ,-z);
+            total += 0.999834476711 *cpow( 19.0 ,-z);
+            total -= 0.999372646647 *cpow( 20.0 ,-z);
+            total += 0.997905448059 *cpow( 21.0 ,-z);
+            total -= 0.993815695896 *cpow( 22.0 ,-z);
+            total += 0.983794506135 *cpow( 23.0 ,-z);
+            total -= 0.962183592565 *cpow( 24.0 ,-z);
+            total += 0.921145847114 *cpow( 25.0 ,-z);
+            total -= 0.852537436761 *cpow( 26.0 ,-z);
+            total += 0.751642715653 *cpow( 27.0 ,-z);
+            total -= 0.621346807473 *cpow( 28.0 ,-z);
+            total += 0.47396013731 *cpow( 29.0 ,-z);
+            total -= 0.328445893083 *cpow( 30.0 ,-z);
+            total += 0.203648931086 *cpow( 31.0 ,-z);
+            total -= 0.111255622362 *cpow( 32.0 ,-z);
+            total += 0.0526848641535 *cpow( 33.0 ,-z);
+            total -= 0.0212286807239 *cpow( 34.0 ,-z);
+            total += 0.0071162051027 *cpow( 35.0 ,-z);
+            total -= 0.00192702152025 *cpow( 36.0 ,-z);
+            total += 0.000404373755448 *cpow( 37.0 ,-z);
+            total -= 6.16229812906e-05 *cpow( 38.0 ,-z);
+            total += 6.06127684826e-06 *cpow( 39.0 ,-z);
+            total -= 2.8863223087e-07 *cpow( 40.0 ,-z);
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+
+        complex zetaf(complex z){
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            //for efficiency, unrolled loop with precomputed dk
+            complex total = zero;
+            total += 1.0 *cpow( 1.0 ,-z);
+            total -= 1.0 *cpow( 2.0 ,-z);
+            total += 1.0 *cpow( 3.0 ,-z);
+            total -= 1.0 *cpow( 4.0 ,-z);
+            total += 1.0 *cpow( 5.0 ,-z);
+            total -= 1.0 *cpow( 6.0 ,-z);
+            total += 1.0 *cpow( 7.0 ,-z);
+            total -= 1.0 *cpow( 8.0 ,-z);
+            total += 1.0 *cpow( 9.0 ,-z);
+            total -= 1.0 *cpow( 10.0 ,-z);
+            total += 1.0 *cpow( 11.0 ,-z);
+            total -= 1.0 *cpow( 12.0 ,-z);
+            total += 1.0 *cpow( 13.0 ,-z);
+            total -= 1.0 *cpow( 14.0 ,-z);
+            total += 1.0 *cpow( 15.0 ,-z);
+            total -= 1.0 *cpow( 16.0 ,-z);
+            total += 1.0 *cpow( 17.0 ,-z);
+            total -= 1.0 *cpow( 18.0 ,-z);
+            total += 1.0 *cpow( 19.0 ,-z);
+            total -= 1.0 *cpow( 20.0 ,-z);
+            total += 1.0 *cpow( 21.0 ,-z);
+            total -= 1.0 *cpow( 22.0 ,-z);
+            total += 1.0 *cpow( 23.0 ,-z);
+            total -= 1.0 *cpow( 24.0 ,-z);
+            total += 1.0 *cpow( 25.0 ,-z);
+            total -= 1.0 *cpow( 26.0 ,-z);
+            total += 1.0 *cpow( 27.0 ,-z);
+            total -= 1.0 *cpow( 28.0 ,-z);
+            total += 1.0 *cpow( 29.0 ,-z);
+            total -= 0.999999999999 *cpow( 30.0 ,-z);
+            total += 0.999999999993 *cpow( 31.0 ,-z);
+            total -= 0.999999999958 *cpow( 32.0 ,-z);
+            total += 0.99999999977 *cpow( 33.0 ,-z);
+            total -= 0.999999998826 *cpow( 34.0 ,-z);
+            total += 0.999999994425 *cpow( 35.0 ,-z);
+            total -= 0.999999975311 *cpow( 36.0 ,-z);
+            total += 0.999999897916 *cpow( 37.0 ,-z);
+            total -= 0.999999605413 *cpow( 38.0 ,-z);
+            total += 0.999998572723 *cpow( 39.0 ,-z);
+            total -= 0.999995164122 *cpow( 40.0 ,-z);
+            total += 0.999984638451 *cpow( 41.0 ,-z);
+            total -= 0.999954211941 *cpow( 42.0 ,-z);
+            total += 0.999871835174 *cpow( 43.0 ,-z);
+            total -= 0.999662861884 *cpow( 44.0 ,-z);
+            total += 0.999165977116 *cpow( 45.0 ,-z);
+            total -= 0.998058314891 *cpow( 46.0 ,-z);
+            total += 0.995742967433 *cpow( 47.0 ,-z);
+            total -= 0.99120444146 *cpow( 48.0 ,-z);
+            total += 0.982861914112 *cpow( 49.0 ,-z);
+            total -= 0.968483209287 *cpow( 50.0 ,-z);
+            total += 0.945250708037 *cpow( 51.0 ,-z);
+            total -= 0.910070449882 *cpow( 52.0 ,-z);
+            total += 0.860163877542 *cpow( 53.0 ,-z);
+            total -= 0.793872883338 *cpow( 54.0 ,-z);
+            total += 0.711473797085 *cpow( 55.0 ,-z);
+            total -= 0.61570118107 *cpow( 56.0 ,-z);
+            total += 0.511700994761 *cpow( 57.0 ,-z);
+            total -= 0.406296055119 *cpow( 58.0 ,-z);
+            total += 0.306706560424 *cpow( 59.0 ,-z);
+            total -= 0.219105892339 *cpow( 60.0 ,-z);
+            total += 0.147479463728 *cpow( 61.0 ,-z);
+            total -= 0.0931361497838 *cpow( 62.0 ,-z);
+            total += 0.0549547340859 *cpow( 63.0 ,-z);
+            total -= 0.0301695408101 *cpow( 64.0 ,-z);
+            total += 0.0153435553638 *cpow( 65.0 ,-z);
+            total -= 0.00719589395219 *cpow( 66.0 ,-z);
+            total += 0.00309661947376 *cpow( 67.0 ,-z);
+            total -= 0.00121604107988 *cpow( 68.0 ,-z);
+            total += 0.000433081317202 *cpow( 69.0 ,-z);
+            total -= 0.000138881266738 *cpow( 70.0 ,-z);
+            total += 3.97663884835e-05 *cpow( 71.0 ,-z);
+            total -= 1.00645969777e-05 *cpow( 72.0 ,-z);
+            total += 2.22373942978e-06 *cpow( 73.0 ,-z);
+            total -= 4.22231110803e-07 *cpow( 74.0 ,-z);
+            total += 6.7493951467e-08 *cpow( 75.0 ,-z);
+            total -= 8.83137692976e-09 *cpow( 76.0 ,-z);
+            total += 9.08146663759e-10 *cpow( 77.0 ,-z);
+            total -= 6.88128744395e-11 *cpow( 78.0 ,-z);
+            total += 3.41565115257e-12 *cpow( 79.0 ,-z);
+            total -= 8.33085646967e-14 *cpow( 80.0 ,-z);
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+          complex zetae(complex z){
+            const float n = 20.0;
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= 0.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            float sign=1.0;
+            complex total = zero;
+            for(float k=1.0; k<=float(n);k++){
+                total += sign*d20(k)*cpow(k,-z);
+                sign *= -1.0;
+            }
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }      
+
+        complex zetad(complex z){
+            const float n = 70.0;
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= 0.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            float sign=1.0;
+            complex total = zero;
+            for(float k=1.0; k<=float(n);k++){
+                total += sign*d70(k)*cpow(k,-z);
+                sign *= -1.0;
+            }
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }
+
+        complex zetac(complex z){
+            const int n = 70;
+            float dk[n+1];
+            
+dk[ 0 ]= 1.0 ;
+dk[ 1 ]= 1.0 ;
+dk[ 2 ]= 1.0 ;
+dk[ 3 ]= 1.0 ;
+dk[ 4 ]= 1.0 ;
+dk[ 5 ]= 1.0 ;
+dk[ 6 ]= 1.0 ;
+dk[ 7 ]= 1.0 ;
+dk[ 8 ]= 1.0 ;
+dk[ 9 ]= 1.0 ;
+dk[ 10 ]= 1.0 ;
+dk[ 11 ]= 1.0 ;
+dk[ 12 ]= 1.0 ;
+dk[ 13 ]= 1.0 ;
+dk[ 14 ]= 1.0 ;
+dk[ 15 ]= 1.0 ;
+dk[ 16 ]= 1.0 ;
+dk[ 17 ]= 1.0 ;
+dk[ 18 ]= 1.0 ;
+dk[ 19 ]= 1.0 ;
+dk[ 20 ]= 1.0 ;
+dk[ 21 ]= 1.0 ;
+dk[ 22 ]= 1.0 ;
+dk[ 23 ]= 1.0 ;
+dk[ 24 ]= 1.0 ;
+dk[ 25 ]= 0.999999999998 ;
+dk[ 26 ]= 0.999999999986 ;
+dk[ 27 ]= 0.999999999908 ;
+dk[ 28 ]= 0.999999999445 ;
+dk[ 29 ]= 0.99999999694 ;
+dk[ 30 ]= 0.999999984465 ;
+dk[ 31 ]= 0.999999927249 ;
+dk[ 32 ]= 0.999999685194 ;
+dk[ 33 ]= 0.999998739307 ;
+dk[ 34 ]= 0.999995320883 ;
+dk[ 35 ]= 0.999983883118 ;
+dk[ 36 ]= 0.999948418943 ;
+dk[ 37 ]= 0.999846438626 ;
+dk[ 38 ]= 0.999574289748 ;
+dk[ 39 ]= 0.998899933475 ;
+dk[ 40 ]= 0.997347768787 ;
+dk[ 41 ]= 0.994028297597 ;
+dk[ 42 ]= 0.987431335881 ;
+dk[ 43 ]= 0.975247962524 ;
+dk[ 44 ]= 0.954341227175 ;
+dk[ 45 ]= 0.921014973492 ;
+dk[ 46 ]= 0.871687125345 ;
+dk[ 47 ]= 0.803929092176 ;
+dk[ 48 ]= 0.717615496045 ;
+dk[ 49 ]= 0.615742738506 ;
+dk[ 50 ]= 0.504460736163 ;
+dk[ 51 ]= 0.392099635614 ;
+dk[ 52 ]= 0.287395057351 ;
+dk[ 53 ]= 0.19750864009 ;
+dk[ 54 ]= 0.126568632073 ;
+dk[ 55 ]= 0.0752236833841 ;
+dk[ 56 ]= 0.0412392369457 ;
+dk[ 57 ]= 0.0207370371156 ;
+dk[ 58 ]= 0.00950714098134 ;
+dk[ 59 ]= 0.00394775311998 ;
+dk[ 60 ]= 0.00147369263756 ;
+dk[ 61 ]= 0.000490305571865 ;
+dk[ 62 ]= 0.000143901782295 ;
+dk[ 63 ]= 3.67918772586e-05 ;
+dk[ 64 ]= 8.06602082219e-06 ;
+dk[ 65 ]= 1.48536817892e-06 ;
+dk[ 66 ]= 2.23389711367e-07 ;
+dk[ 67 ]= 2.63424142138e-08 ;
+dk[ 68 ]= 2.28367116553e-09 ;
+dk[ 69 ]= 1.29391559251e-10 ;
+dk[ 70 ]= 3.5942099792e-12 ;
+
+
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            float sign=1.0;
+            complex total = zero;
+            for(float k=1.0; k<=float(n);k++){
+                total += sign*dk[int(k)]*cpow(k,-z);
+                sign *= -1.0;
+            }
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }
+
+        complex zetaa(complex z){
+            const int n = 20;
+            float dk[n+1];
+            
+            dk[ 0 ]= 1.0 ;
+            dk[ 1 ]= 1.0 ;
+            dk[ 2 ]= 0.999999999999 ;
+            dk[ 3 ]= 0.999999999895 ;
+            dk[ 4 ]= 0.999999994405 ;
+            dk[ 5 ]= 0.999999841075 ;
+            dk[ 6 ]= 0.999997224245 ;
+            dk[ 7 ]= 0.999967487537 ;
+            dk[ 8 ]= 0.999729593873 ;
+            dk[ 9 ]= 0.998337915938 ;
+            dk[ 10 ]= 0.992225448145 ;
+            dk[ 11 ]= 0.971700424716 ;
+            dk[ 12 ]= 0.918388675548 ;
+            dk[ 13 ]= 0.810606226144 ;
+            dk[ 14 ]= 0.640807413544 ;
+            dk[ 15 ]= 0.433275531477 ;
+            dk[ 16 ]= 0.238624938642 ;
+            dk[ 17 ]= 0.101270689665 ;
+            dk[ 18 ]= 0.0307572784262 ;
+            dk[ 19 ]= 0.00590969541814 ;
+            dk[ 20 ]= 0.000537245038013 ;
+
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 ) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            float sign=1.0;
+            complex total = zero;
+            for(float k=1.0; k<=float(n);k++){
+                total += sign*dk[int(k)]*cpow(k,-z);
+                sign *= -1.0;
+            }
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }
+
+
+        complex zetab(complex z){
+            const int n = 40;
+            float dk[n+1];
+            dk[ 0 ]= 1.0 ;
+            dk[ 1 ]= 1.0 ;
+            dk[ 2 ]= 1.0 ;
+            dk[ 3 ]= 1.0 ;
+            dk[ 4 ]= 1.0 ;
+            dk[ 5 ]= 1.0 ;
+            dk[ 6 ]= 1.0 ;
+            dk[ 7 ]= 1.0 ;
+            dk[ 8 ]= 1.0 ;
+            dk[ 9 ]= 1.0 ;
+            dk[ 10 ]= 0.999999999999 ;
+            dk[ 11 ]= 0.99999999998 ;
+            dk[ 12 ]= 0.999999999735 ;
+            dk[ 13 ]= 0.999999997107 ;
+            dk[ 14 ]= 0.999999973564 ;
+            dk[ 15 ]= 0.99999979531 ;
+            dk[ 16 ]= 0.999998644649 ;
+            dk[ 17 ]= 0.999992264978 ;
+            dk[ 18 ]= 0.99996169714 ;
+            dk[ 19 ]= 0.999834476711 ;
+            dk[ 20 ]= 0.999372646647 ;
+            dk[ 21 ]= 0.997905448059 ;
+            dk[ 22 ]= 0.993815695896 ;
+            dk[ 23 ]= 0.983794506135 ;
+            dk[ 24 ]= 0.962183592565 ;
+            dk[ 25 ]= 0.921145847114 ;
+            dk[ 26 ]= 0.852537436761 ;
+            dk[ 27 ]= 0.751642715653 ;
+            dk[ 28 ]= 0.621346807473 ;
+            dk[ 29 ]= 0.47396013731 ;
+            dk[ 30 ]= 0.328445893083 ;
+            dk[ 31 ]= 0.203648931086 ;
+            dk[ 32 ]= 0.111255622362 ;
+            dk[ 33 ]= 0.0526848641535 ;
+            dk[ 34 ]= 0.0212286807239 ;
+            dk[ 35 ]= 0.0071162051027 ;
+            dk[ 36 ]= 0.00192702152025 ;
+            dk[ 37 ]= 0.000404373755448 ;
+            dk[ 38 ]= 6.16229812906e-05 ;
+            dk[ 39 ]= 6.06127684826e-06 ;
+            dk[ 40 ]= 2.8863223087e-07 ;
+
+
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+
+            float sign=1.0;
+            complex total = zero;
+            for(float k=1.0; k<=float(n);k++){
+                total += sign*dk[int(k)]*cpow(k,-z);
+                sign *= -1.0;
+            }
+
+            total = div(total, one-cpow(2.0,one-z));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+
+            return total;
+        }
+
+        
+        complex zetaog(complex z) {
+            complex total = zero;
+            complex ref;
+            bool inv = false;
+            if(z.x <= -1.0 ) {
+                ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
+                                  csin(pi*z/2.0)),
+                                  gamma(one - z));
+                z = one - z;
+                inv = true;
+            }
+
+            
+            // bool sub = false;
+            // for(float n = 1.0; n < 100.0; n++){
+            //      if(sub) {
+            //          total -= cpow(n, -z);
+            //      } else {
+            //          total += cpow(n, -z);
+            //      }
+            //      sub = !sub;
+            // }
+
+            const float nmax = 20.0;
+            for(float n = 0.0; n <= nmax; n++) {
+                bool sub = false;
+                complex ktotal = zero;
+                float bincoef = 1.0;
+                for(float k = 0.0; k <= nmax; k++) {
+                    if(k > n) break;
+                    if(k != 0.0) bincoef *= (n-k+1.0)/k;
+                    if(sub) {
+                         ktotal -= bincoef*cpow(k+1.0, -z);
+                     } else {
+                         ktotal += bincoef*cpow(k+1.0, -z);
+                     }
+                    sub = !sub;
+                }
+                total += pow(2.0,-n-1.0)*ktotal;
+            }
+            
+            //if(isnan(total.x)) {
+            //    total = z;
+            //}
+            //total = z;
+            total = mul(total, div(one, one - cpow(2.0,one-z)));
+
+            if (inv) {
+                total = mul(ref, total);
+            }
+            return total;
+        }
