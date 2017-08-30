@@ -3069,8 +3069,16 @@
                     <button onclick="resetPosition()">Reset position</button> <button onclick="resetZoom()">Reset zoom</button> 
                     </t>
                     <t>
+
+                        i²=<select id="numbertype" onchange="parseInput()">
+                                                  <option value="complex">-1</option>
+                                                  <option value="hyperbolic">1</option>
+                                                  <option value="dual">0</option>
+                                                </select>
+
                     <button id="changeRenderButton" onclick="changeRender()">3D view</button> 
                     <aa id="tinvert"><input type="checkbox" id="invert">Invert </aa>
+
                     </t>
                     </center>
                     <t>
@@ -3099,13 +3107,6 @@
                 <a id="tinvert3d"><input type="checkbox" id="invert3d">In 3D invert by swapping input and output (i.e. plot (f(z),z) instead of (z,f(z)))</a>
                 <a id="tlimitdomain3d"><input type="checkbox" id="limitdomain3d">Limit the domain of the inverse to that of the original function when using the above setting</a>
 
-                <t>
-                	i²=<select id="numbertype" onchange="parseInput()">
-						  <option value="complex">-1</option>
-						  <option value="hyperbolic">1</option>
-						  <option value="dual">0</option>
-						</select>
-                </t>
                 <t></t>
                 <t></t>
                 </div>
