@@ -3115,55 +3115,68 @@
             <div id="info" class="sidenav" style = "left:0;">
                 <a href="javascript:void(0)" class="closebtn" onclick="closeInfo()">&times;</a>
                 <t>
-                    The variable z provides the x and y coordinates of each pixel in the form x + iy. <br>
-                    Any other variables will become toggleable uniforms which you can use to manipulate the program. <br><br>
-
-                    The x and y axes of each window ranges from -1 to 1. When a user enters a function, each point (x,y) on the right screen is colored by where they land under f(x+iy) on the left screen. In areas not covered by the SOR, a background image helps to visualize where on the complex plane each of the input points landed. Note: the look of this background image is heavily inspired by David Bau's complex function viewer, though I didn't take any of his code when making it. This is essentially meant to be a faster and more customizeable version of his website.<br><br>
-
-                    If you want points to be colored based on where they originated, rather than where they ended up, enable "invert" in settings. This is fairly expensive, so consider turning down AA or making the window smaller if you experience problems.<br><br>
-
-                    To generate the parser for user input I used peg.js. The generated parser file is included, along with the grammar file that I wrote and used to generate the parser.<br>
+You can use this tool to plot functions of complex, split-complex, and dual numbers, and their inverses, in 2D and 3D.
+<br>
+The basic color scheme and idea were entirely inspired by David Bau's complex function plotter, but my goal was to make my version run faster (using webgl) and have more features (split-complex numbers, dual numbers, 3D plotting, inverses) and be more customizable.
 
 
-                    <br>
-                    Constants: <br>
-                    e <br>
-                    pi or π <br>
-                    i <br>
+<h2>Basic Usage</h2>
 
-                    Note: below u and v are used to represent any expression <br>
-                    Operators and functions: <br>
-                    <br>
-                    Grouping (u) <br>
-                    Magniute |u| or ‖u‖<br>
-                    Conjuagte u* <br>
-                    Basic arithmetic: u+v,u-v,u*v or u⋅v,u/v or u÷v <br>
-                    To multiply you can also simply write variables next to each other i.e. uv or 2uv or 2 u v or ipiuv or i pi u v are all valid and will behave the same as if * were used. Take note that 2(u) will work fine but v(u) is a function, not multiplication (also note that (v)u or (v)(u) will work just fine). <br>
-                    Exponentiation and logarithms: u^v, ln(u), log(u), log(u,b)  <i>(The b argument in log can be used to specify a base, default e)</i> <br>
-                    Factorial: u! (really gamma(u+1))<br>
-                    <br>
-                    Trig functions: sin(u), cos(u), tan(u)<br>
-                    Inverse trig functions: asin(u), acos(u), atan(u)<br>
-                    Hyperbolic trig functions: sinh(u), cosh(u), tanh(u) <br><br>
+To enter a function hover your mouse over the bottom of the window (or tap on mobile) and click the 3 horizontal bars, which will show you an interface for entering functions and customizing the tool.
 
-                    Angle: arg(u)<br>
-                    Get real/imaginary components: re(u), im(u)<br>
-                    Sign: sgn(u) <br>
-                    Step: step(u) <br>
+In reading order, the icons at the bottom of the screen are help, menu (the three horizontal bars mentioned above), upload background image (this lets you manipulate an image of your choice with the function you entered), download, and fullscreen.
+
+The variable z provides the x and y coordinates of each pixel in the form x + iy. <br>
+Any other variables will become toggleable values in the menu which you can use to manipulate the program. <br><br>
+
+The x and y axes of each window ranges from -1 to 1. When a user enters a function, each point (x,y) is colored by where they land under f(x+iy). If you want points to be colored based on where they originated, rather than where they ended up, enable "invert" in settings to numerically invert the function. This is fairly expensive, so consider turning down AA or making the window smaller if you experience problems (you can also customize the inversion settings in the menu).
 
 
-                    Square root: sqrt(z) or √(z) (or just use exponentiation)<br>
-                    Gamma function: gamma(u) or Γ(u) <br>
-                    Zeta function: zeta(u) or ζ(z)<br>
-                    <br>
+<h2>Constants</h2>
+e <br>
+pi or π <br>
+i <br>
 
-                    Iterated function {var=update, var=initial, iterations}  (Think of var=update as the body of a for loop, e.g. {z' = z' +1, z' = 0, 5} would intiialize z' to 0, then add one to it in each of 5 iterations). Default value of var is z', you don't need to specifiy "z'=" if you plan on using z' (so {z' +1, 0, 5} also works), but if you want to use a different variable like "y" you would have to specifiy it ({y = y +1, y = 0, 5}). Iterations must be an integer<br><br>
-                    Derivative w.r.t z (u)' (You can nest derivatives as deeply as you want, but due to the limitations of floating point arithmetic results degrade fairly quickly) Note the parentheses, z' in an iterated function is not the derivative of z.<br><br>
-                    Integral w.r.t z $(u) or $[lower](u) or $[lower, upper](u). When the lower and upper bound parameters are omitted, defaults of 0 and z respectively are used. Integrates along a line from lower to upper bound. You can also use $[lower, upper, variable](u) to specify the variable to integrate with respect to, default z. Use $[lower,upper,variable,iter](u) to specify the number of steps to take when integrating. You can use ∫ in place of $.<br><br>
 
-                    Sum over n from 1 to |count|: Sum(u,count) or ∑(u,count) e.g. sum(1/n^z,100n).
-                    <br><br>
+<h2>Operators and Functions</h2>
+Note: below u and v are used to represent any expression <br>
 
+
+<b>Grouping</b> (u) <br>
+<b>Magnitude</b> |u| or ‖u‖<br>
+<b>Conjuagte</b> u* <br>
+<b>Basic arithmetic</b>: u+v,u-v,u*v or u⋅v,u/v or u÷v <br>
+To multiply you can also simply write variables next to each other i.e. uv or 2uv or 2 u v or ipiuv or i pi u v are all valid and will behave the same as if * were used. Take note that 2(u) will work fine but v(u) is a function, not multiplication (also note that (v)u or (v)(u) will work just fine). <br>
+<b>Exponentiation and logarithms</b>: u^v, ln(u), log(u), log(u,b)  <i>(The b argument in log can be used to specify a base, default e)</i> <br>
+<b>Factorial</b>: u! (really gamma(u+1))<br>
+<br>
+<b>Trig functions</b>: sin(u), cos(u), tan(u)<br>
+<b>Inverse trig functions</b>: asin(u), acos(u), atan(u)<br>
+<b>Hyperbolic trig functions</b>: sinh(u), cosh(u), tanh(u) <br><br>
+
+<b>Angle</b>: arg(u)<br>
+<b>Get real/imaginary components</b>: re(u), im(u)<br>
+<b>Sign</b>: sgn(u) <br>
+<b>Step</b>: step(u) <br>
+
+<b>Square root</b>: sqrt(z) or √(z) (or just use exponentiation)<br>
+
+<b>Gamma function</b>: gamma(u) or Γ(u) <br>
+<b>Zeta function</b>: zeta(u) or ζ(z)<br>
+<br>
+<b>Iterated function</b> {var=update, var=initial, iterations}  (Think of var=update as the body of a for loop, e.g. {z' = z' +1, z' = 0, 5} would initialize z' to 0, then add one to it in each of 5 iterations). Default value of var is z', you don't need to specify "z'=" if you plan on using z' (so {z' +1, 0, 5} also works), but if you want to use a different variable like "y" you would have to specify it ({y = y +1, y = 0, 5}). Iterations must be an integer<br><br>
+
+<b>Derivative</b> w.r.t z (u)' (You can nest derivatives as deeply as you want, but due to the limitations of floating point arithmetic results degrade fairly quickly) Note the parentheses, z' in an iterated function is not the derivative of z.<br><br>
+
+<b>Integral</b> w.r.t z $(u) or $[lower](u) or $[lower, upper](u). When the lower and upper bound parameters are omitted, defaults of 0 and z respectively are used. Integrates along a line from lower to upper bound. You can also use $[lower, upper, variable](u) to specify the variable to integrate with respect to, default z. Use $[lower,upper,variable,iter](u) to specify the number of steps to take when integrating. You can use ∫ in place of $.<br><br>
+
+<b>Sum</b> from 1 to |count|: Sum(u,count) or ∑(u,count) e.g. sum(1/n^z,100n).
+
+<h2>Other</h2>
+
+To generate the parser for user input I used peg.js. The generated parser file is included, along with the grammar file that I wrote and used to generate the parser.<br>
+<br>
+<br>
 
 
                 </t>
