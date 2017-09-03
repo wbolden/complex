@@ -456,88 +456,6 @@ function setup3D() {
     offset3D = [-0.5*(p0[0] + p1[0]), -0.5*(p0[1] + p1[1]), 0];
     basescale3D = 1/Math.abs((p0[1] - p1[1])*0.5);
 
-    //offset3D = shift;
-    //basescale3D = scale;
-
-    /*
-    //============================Begin PCA test===========================
-    //Count, discluding nan or inf
-    var validCount = 0;
-    var mean = [0,0,0,0];
-    for(var i = 0; i < result.length; i+=4){
-        if(!Number.isFinite(result[i] + result[i+1] + result[i+2] + result[i+3])){
-            console.log(result[i], result[i+1], result[i+2], result[i+3])
-            continue;
-        }
-        //console.log(result[i], result[i+1], result[i+2], result[i+3])
-        validCount++;
-        for(var n = 0; n < 4; n++){
-            mean[n] += result[i+n];
-        }
-
-    }
-    console.log("Sum: ", mean, "Count: ", validCount);
-    for(var n = 0; n < 4; n++){
-        mean[n] /= validCount;
-    }
-    console.log("Mean: ", mean);
-
-
-    for(var i = 0; i < result.length; i++){
-        result[i] -= mean[i%4];
-    }
-
-
-    var covariance = [[0,0,0,0],
-                      [0,0,0,0],
-                      [0,0,0,0],
-                      [0,0,0,0]];
-    
-    for(var i = 0; i < result.length; i+=4){
-        if(!Number.isFinite(result[i] + result[i+1] + result[i+2] + result[i+3])){
-            continue;
-        }
-
-        for(var r = 0; r < 4; r++){
-            for(var c = 0; c < 4; c++){
-                covariance[r][c] += result[i+r] * result[i+c];
-            }
-        }
-
-    }
-
-    for(var r = 0; r < 4; r++){
-        for(var c = 0; c < 4; c++){
-            covariance[r][c] /= validCount;
-        }
-    }
-    console.log("Covariance: ",covariance[0], covariance[1], covariance[2], covariance[3]);
-
-    //Eigenvectors
-    var U = numeric.svd(covariance).U;
-    var UT = numeric.transpose(U);
-
-    console.log("U: ",U[0], U[1], U[2], U[3]);
-    console.log("U^T: ",UT[0], UT[1], UT[2], UT[3]);
-
-
-    for(var i = 0; i < result.length; i+=4){
-
-        var inv = [result[i], result[i+1], result[i+2], result[i+3]];
-        var outv = [0,0,0,0];
-        
-        for(var n = 0; n < 4; n++){
-            outv[n] = numeric.dot(inv, UT[n]);
-        }
-
-        for(var n = 0; n < 4; n++){
-            result[i+n] = outv[n];
-        }
-        //result[i+2] = outv[3];
-
-    }
-    //============================End PCA test===========================
-    */
   //Make a 3D mesh if options selected
     if( (invert3D || !invert) && makemesh){
         var resmesh = [];
@@ -548,7 +466,7 @@ function setup3D() {
         var xinc = 1;
         var yinc = 1;
         var step = 1;
-        var maxres = 256*256*99999;
+        var maxres = 256*256*9999999;
       
         if(w*h > maxres){
           var downscale = Math.sqrt(maxres/(w*h));
