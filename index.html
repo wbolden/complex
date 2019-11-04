@@ -663,11 +663,12 @@
         }
 
 
-        complex zeta(complex z){
+        //This one wasnt working for some reason. Numerical errors?
+        complex zeta_bad(complex z){
 
             complex ref;
             bool inv = false;
-            if(z.x <= 0.0 && abs(z.y) < 55.0) {
+            if(z.x <= -1.0 && abs(z.y) < 55.0) {
                 ref = mul(mul(mul(cpow(complex(2,0),z),cpow(cpi,z-one)),
                                   csin(pi*z/2.0)),
                                   gamma(one - z));
@@ -792,8 +793,8 @@
         }      
 
 
-
-        complex zetag(complex z){
+       //formerly zetag
+        complex zeta(complex z){
 
             complex ref;
             bool inv = false;
